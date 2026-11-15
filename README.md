@@ -13,7 +13,7 @@ Cohabit 帮同学院同学在组寝前把作息、整洁、社交边界等讲清
 ```text
 cohabit/
 ├── README.md                 # 本文件
-├── docs/                     # 开发手册、02/03、开发日记、后续 API/ER
+├── docs/                     # 开发手册、02/03/04、OpenAPI、ER、开发日记
 └── 0.cohabit/                # 网站工程根；业务代码只写这里
     ├── backend/              # Django 工程
     └── frontend/             # Vue 3 SPA
@@ -25,8 +25,10 @@ cohabit/
 
 - **[开发手册 v2（单一事实来源）](<docs/开发手册(v2).md>)** ← 先读这份
 - [组寝状态机（02）](<docs/02-组寝状态机.md>) ｜ [数据字典与问卷（03）](<docs/03-数据字典与问卷.md>)（已批准，2026-11-15）
+- [API 契约（04）](<docs/04-API契约.md>) ｜ [OpenAPI 3.0.3](<docs/openapi.yaml>) ｜ [ER v2](<docs/ER-v2.md>)（已批准，2026-11-15）
 - [开发日记](<docs/开发日记.md>)（每日任务与完成情况）
-- 下一步产出：API 契约/OpenAPI、ER v2（路线图见手册 §15.2）
+- 产品材料：[视觉与组件规范（05）](<docs/05-视觉与组件规范.md>) ｜ [验收清单（06）](<docs/06-验收清单.md>) ｜ [演示脚本（07）](<docs/07-演示脚本.md>) ｜ [seed 规格](<docs/seed-spec.md>)
+- 当前进度：**M1 基础层已完成（2026-11-15）**；团队 `cohabit-m1` 的 t1–t11 全部完成，后端 151 tests、前端 build 182 modules 通过；下一步 M2 组寝流程（路线图见手册 §15.2，验收记录见 [06 验收清单](<docs/06-验收清单.md>) §13）
 - 历史文档（v1，仅作参考，冲突时以 v2 为准）：
   - [Cohabit 开发手册（v1）.md](<Cohabit开发手册（v1）.md>)
   - [数据模型（Django）.md](<数据模型（Django）.md>)
@@ -35,9 +37,9 @@ cohabit/
 
 ## 当前阶段
 
-**网站脚手架与环境验证（2026-11-15）**：`0.cohabit/` 下已搭好 Django 5 + DRF 与 Vue 3 + Vite 的前后端骨架、路由、设计 token 和页面框架；后端依赖已装、`manage.py check` 通过，前端依赖已装、`npm run build` 通过，PostgreSQL 16.16 已在本机 5433 初始化。尚未写业务模型与真实接口；首次 migrate 被自定义 `accounts.User` 拦住，不能先用默认 `auth.User` 建表。
+**M1 基础层已完成（2026-11-15）**：`0.cohabit/` 下 Django 5 + DRF 与 Vue 3 + Vite 骨架、依赖、`manage.py check`、`npm run build`、PostgreSQL 16.16 均已验证；04 API 契约、OpenAPI、ER v2 已获用户批准。M1 团队 `cohabit-m1` 完成 t1–t11：自定义 `accounts.User` 与首次迁移、认证 API、画像/匹配算法、领域模型、合并迁移、画像/匹配 API、前端认证外壳、问卷/画像/匹配页、视觉/验收/seed 材料、邀请码、`PUT /api/me`。后端全量 pytest **151 passed**，check/makemigrations --check/migrate/ruff 全绿；前端 build **182 modules**；浏览器走查 onboarding→match→profile 通过。验收记录见 [06 验收清单 §13](<docs/06-验收清单.md>)。
 
-> 开发手册、状态机 02、数据字典/问卷 03 已获用户批准（按文档执行）。网站代码只写 `0.cohabit/`，`docs/` 只放契约与记录。
+> 开发手册、02、03、04/OpenAPI/ER 均已获用户批准（按文档执行）。网站代码只写 `0.cohabit/`，`docs/` 只放契约与记录。
 
 ## 本地启动（依赖已装，2026-11-15 验证）
 
@@ -49,8 +51,7 @@ cd D:\cohabit\0.cohabit\backend
 # uv venv --python 3.12 .venv
 # uv pip install -r requirements\dev.txt
 # 本地 .env 已创建（被 .gitignore 忽略）；首次部署/新机器从 .env.example 复制。
-# 首次 migrate 前，P1 必须先按 docs/03 落地自定义 User（accounts.User）；
-# 脚手架阶段不要执行 migrate/seed_demo，否则会先用默认 auth.User 建表。
+# 首次 migrate 已由 accounts.User（t1）完成；重建数据库后直接 migrate，不要再先用默认 auth.User。
 .\.venv\Scripts\python.exe manage.py check
 .\.venv\Scripts\python.exe manage.py runserver 8000
 ```
@@ -75,6 +76,6 @@ npm run dev
 
 ## 当前门槛与下一步
 
-- **首次 migrate 门槛**：后端当前仍用 Django 默认 `User`，`AUTH_USER_MODEL` 未设置。P1 必须按 `docs/03-数据字典与问卷.md` 落地自定义 `accounts.User` 后，才能执行 `migrate`/`seed_demo`；脚手架阶段禁止先用默认 `auth.User` 建表。
-- 环境已验证：后端 `manage.py check` 0 问题；前端 `npm run build` 成功；PostgreSQL 16.16 角色/数据库可连接。网络代理已恢复，依赖安装不再阻塞。
-- 下一步（按手册 §15.2）：P1 自定义 User + 首次迁移 → 04 API/OpenAPI、ER v2；团队计划与 D1 开工获批前不写业务模型。
+- **migrate 已解锁**：自定义 `accounts.User` 已由 t1 落地并执行首次迁移；重建数据库后可直接 `migrate`，不得回退到默认 `auth.User`。
+- 环境已验证：后端 `manage.py check` 0 问题；前端 `npm run build` 成功；PostgreSQL 16.16 角色/数据库可连接。
+- 下一步（按手册 §15.2）：M1 已完成（151 tests / build 182 modules / 浏览器走查）；用户评审并手动提交 Git 后进入 M2 组寝流程（连接申请、联系方式共享、两步确认、寝室/成员状态机与 API）。
