@@ -309,6 +309,7 @@
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
+| `id` | int | 内部主键；`PATCH/动作 /api/rooms/:id` 使用 |
 | `code` | string | 9 位数字 |
 | `title` | string | ≤30 字 |
 | `capacity` | int | 2/4/6 |
@@ -330,12 +331,12 @@
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `members` | `RoomMember[]` | 完整成员列表（昵称/uid/角色/加入时间） |
+| `members` | `RoomMember[]` | 成员列表；非终态仅 ACTIVE，终态（ARCHIVED/DISSOLVED）返回全部历史成员（含 LEFT/REMOVED/ARCHIVED）作为最终名单 |
 | `actions` | object | `can_lock/can_unlock/can_dissolve/can_leave/can_remove/can_transfer/can_edit` |
 | `created_at` | string | 创建时间 |
 | `archived_at` / `dissolved_at` | string \| null | 终态时间 |
 
-`RoomMember`：`uid,nickname,avatar_key,role,status,created_at`；`status` 仅返回 ACTIVE（历史成员不返回）。
+`RoomMember`：`uid,nickname,avatar_key,role,status,created_at`；非终态 `status` 仅 ACTIVE；终态房间返回历史成员及其真实 `status`（ARCHIVED/LEFT/REMOVED），用于只读最终名单。
 
 ### 3.8 `RoomTransferSummary`
 
@@ -354,7 +355,7 @@
 | `room` | `RoomSummary` \| null | APPLY/房主邀请时有 |
 | `message` | string | 可空 |
 | `contact_shared_at` | string \| null | accept 时间 |
-| `expires_at` | string | 当前状态截止时间 |
+| `expires_at` | string \| null | 当前状态截止时间；`CONFIRMED` 为 `null` |
 | `actions` | object | 见 §5.1 |
 
 列表**不含** `contact`、`initiator_confirm_at/target_confirm_at`。
@@ -368,7 +369,7 @@
 | `initiator_confirm_at` / `target_confirm_at` | string \| null | 第二步确认时间 |
 | `closed_by` | `UserSummary` \| null | 关闭操作者；系统为空 |
 | `close_reason` | string | `CONFIRMED` 为空；其他见 02 |
-| `contact` | object \| null | 仅解锁状态；`{qq?,wechat?,phone?,unlocked:true}`；否则 null |
+| `contact` | object | 仅解锁状态且有可见字段：`{qq?,wechat?,phone?,unlocked:true}`；否则 `{}`（不返回 null） |
 | `version` | int | 审计辅助 |
 
 ### 3.11 `MatchScore`
@@ -525,7 +526,7 @@
 | --- | --- | --- |
 | `GET /api/rooms` | 同院同性别 | 广场：仅 `RECRUITING` 且有空位；`major/capacity/tags/page` |
 | `GET /api/rooms/mine` | 本人 | 我的寝室 + 待处理申请 + pending 转让；无房 `room:null` |
-| `GET /api/rooms/:code` | 同院同性别或本寝成员 | 详情；非本寝且学院/性别不符 404 |
+| `GET /api/rooms/:code` | 同院同性别或本寝成员（含终态历史成员） | 详情；非本寝且学院/性别不符 404；终态历史成员只读 |
 | `PATCH /api/rooms/:id` | 房主 | 改 `title/tags`；`capacity` 出现即 409 `CAPACITY_IMMUTABLE` |
 | `POST /api/rooms/:id/lock` | 房主 | `RECRUITING→LOCKED`；关闭该寝 open 请求 |
 | `POST /api/rooms/:id/unlock` | 房主 | `LOCKED→RECRUITING`；不通知，只审计 |
@@ -545,7 +546,7 @@
 ```json
 {
   "room": {
-    "code":"482913756","title":"小满的寝室","capacity":4,"member_count":2,
+    "id":7,"code":"482913756","title":"小满的寝室","capacity":4,"member_count":2,
     "status":"RECRUITING","gender":"FEMALE","college":"计算机学院","tags":["早睡"],
     "owner":{"uid":"0834215769","nickname":"小满","avatar_key":"avatar-01"},
     "members":[{"uid":"0834215769","nickname":"小满","role":"OWNER","status":"ACTIVE","created_at":"..."}],
@@ -559,6 +560,7 @@
 ```
 
 - 无寝：`{"room":null,"pending_applications":[],"pending_transfer":null}`。
+- 无 ACTIVE 寝但有终态（`ARCHIVED/DISSOLVED`）历史成员记录时，`room` 返回该房间的只读 `RoomDetail`（`actions` 全 `false`，`pending_applications/transfer` 为空）；公开页仍 404。
 - `pending_applications` 仅房主可见；只含 `APPLY`/房主邀请的 open 请求；不含 contact。
 
 **PATCH /api/rooms/:id** 请求 `{"title":"...","tags":[...]}`；`title` ≤30；`tags` ≤8；只房主；终态 409 `INVALID_STATE`。响应 `RoomDetail`。
@@ -575,7 +577,7 @@
 
 ```json
 {
-  "code":"482913756","title":"小满的寝室","capacity":4,"member_count":2,
+  "id":7,"code":"482913756","title":"小满的寝室","capacity":4,"member_count":2,
   "status":"RECRUITING","college":"计算机学院","tags":["早睡"],
   "members":[{"nickname":"小满","avatar_key":"avatar-01"},{"nickname":"阿迟","avatar_key":"avatar-03"}]
 }
@@ -628,7 +630,7 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
 **GET /api/connections/:id**
 
 - 非参与者 → 404 `CONNECTION_NOT_FOUND`。
-- `contact` 仅在状态 ∈ `{CONTACT_SHARED,CONFIRMING,CONFIRMED}` 且 `show_*` 为 true 时返回；否则 `null`。
+- `contact` 仅在状态 ∈ `{CONTACT_SHARED,CONFIRMING,CONFIRMED}` 且 `show_*` 为 true 时返回；否则 `{}`（与验收 C-12/S-05 一致）。
 - 关闭后立即隐藏（即使 cron 未跑）。
 - `actions`：见 §5.1。
 
@@ -647,7 +649,7 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
 
 **confirm**：
 
-- 双方各一次；第一次：`CONTACT_SHARED→CONFIRMING`，写本人 `*_confirm_at`，`expires_at=now+48h`，N-03 通知对方；审计 `CONNECTION_CONFIRMED_STEP1`。
+- 双方各一次；第一次：`CONTACT_SHARED→CONFIRMING`，写本人 `*_confirm_at`，`expires_at=now+48h`，N-03 通知对方；审计 `CONNECTION_CONFIRMED_STEP1`。第二次成立后 `expires_at=null`。
 - 第二次：
   - `INVITE(room=null)`：建寝；`capacity=capacity_pref`；`owner=initiator`；`gender/college` 快照；`title="{nickname}的寝室"`；`tags` 合并去重≤8；`member_count=2`；`status=FULL if capacity==2 else RECRUITING`；双方 `ACTIVE/OWNER|MEMBER`；
   - `INVITE(room≠null)` / `APPLY`：锁 Room，重读空位，加入；`member_count+1`；满员转 FULL 并清理该寝其余 open 请求；
@@ -878,7 +880,7 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
 | --- | --- |
 | A-01 | 所有受保护端点无 token → 401 `AUTH_REQUIRED` |
 | A-02 | 非参与者 GET 连接详情 → 404 `CONNECTION_NOT_FOUND` |
-| A-03 | 未解锁状态详情 `contact=null`；列表永不出现 contact |
+| A-03 | 未解锁状态详情 `contact={}`；列表永不出现 contact |
 | A-04 | `PUT /api/me` 带 `gender` → 403 `GENDER_IMMUTABLE` |
 | A-05 | 画像提交未知顶层字段/未知 key/非法选项 → 400 + `detail.fields`（顶层未知字段为 `UNKNOWN_FIELD`） |
 | A-06 | 创建请求组合非法 → 400 `INVALID_TYPE`/`CAPACITY_INVALID` |
@@ -912,3 +914,6 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
 | v1.0-draft | 2026-11-15 | 首版：认证/我的/匹配/寝室/请求/通知/安全/错误/限频/验收 |
 | v1.1-draft | 2026-11-15 | 实现澄清：匹配单查目标画像 <100 → `TARGET_PROFILE_INCOMPLETE`；跨院/跨性别/目标不存在 → `PROFILE_NOT_FOUND`（不泄露存在性）；同步 03 §8.7/§10.2、06 M-08 |
 | v1.2-draft | 2026-11-15 | 实现澄清：画像写入未知顶层字段 → 400 `UNKNOWN_FIELD`；补 §8/A-05，同步 03 §10.2/§13.4 |
+| v1.3-draft | 2026-11-15 | 实现澄清：连接详情未解锁 `contact={}`（非 `null`）；同步 §3.10/§10 A-03、06 A-03、OpenAPI `ContactInfo.unlocked` |
+| v1.4-draft | 2026-11-15 | 终态寝室只读详情：`members` 返回全部历史成员（最终名单）；非终态仍仅 ACTIVE |
+| v1.5-draft | 2026-11-15 | `ConnectionRequest.expires_at` 可空；`CONFIRMED` 为 `null`，同步 03 §1.6/OpenAPI |
