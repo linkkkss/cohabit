@@ -7,6 +7,9 @@ from rest_framework.permissions import AllowAny
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("apps.core.urls")),
+    path("api/", include("apps.accounts.urls")),
+    path("api/", include("apps.profiles.urls")),
+    path("api/", include("apps.matching.urls")),
     path(
         "api/schema/",
         SpectacularAPIView.as_view(permission_classes=[AllowAny]),

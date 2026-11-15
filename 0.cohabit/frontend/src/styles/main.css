@@ -472,6 +472,146 @@ button {
   font-size: 12px;
 }
 
+.preview-copy {
+  margin: 0 0 10px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.auth-tabs {
+  margin-top: 22px;
+  margin-bottom: 22px;
+}
+
+.auth-tabs .tab {
+  min-height: 44px;
+}
+
+.auth-switch {
+  margin: 18px 0 0;
+}
+
+.auth-home-link {
+  margin: 14px 0 0;
+}
+
+.auth-home-link a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-button:hover {
+  color: var(--coral-dark);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.code-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.code-row .btn {
+  flex: none;
+  white-space: nowrap;
+}
+
+.field-error {
+  margin: 0;
+  color: var(--coral-dark);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.auth-notice {
+  margin: 0;
+  border: 1px solid var(--sand-deep);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--sand);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.dev-hint {
+  color: var(--coral-dark);
+}
+
+.choice-field {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.field-legend {
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.choice {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0 16px;
+  background: var(--paper);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.choice.selected {
+  border-color: var(--ink);
+}
+
+.choice input {
+  accent-color: var(--coral-dark);
+}
+
+:focus-visible {
+  outline: 2px solid var(--coral-dark);
+  outline-offset: 3px;
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible,
+.field select:focus-visible {
+  border-color: var(--ink);
+  outline: 2px solid var(--coral-dark);
+  outline-offset: 2px;
+}
+
 .page-head {
   display: flex;
   flex-wrap: wrap;
@@ -870,5 +1010,27 @@ button {
 
   .auth-card {
     padding: 24px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-small,
+  .nav-link,
+  .choice {
+    min-height: 44px;
+  }
+
+  .code-row {
+    flex-wrap: wrap;
+  }
+
+  .code-row input {
+    flex-basis: 100%;
+  }
+
+  .code-row .btn {
+    width: 100%;
   }
 }

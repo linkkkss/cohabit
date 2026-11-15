@@ -1,76 +1,112 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { nextTick, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { ALLOW_PREVIEW, useAuthStore } from '@/stores/auth'
+import { resolveAuthRedirect } from '@/router/redirect'
+import LoginPanel from '@/views/auth/LoginPanel.vue'
+import RegisterPanel from '@/views/auth/RegisterPanel.vue'
+
+type Mode = 'login' | 'register'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
-const showPreview = import.meta.env.VITE_ALLOW_PREVIEW === 'true'
-const form = reactive({ email: '', password: '' })
-const submitting = computed(() => auth.loading)
 
-async function submit(): Promise<void> {
-  try {
-    await auth.login(form.email.trim(), form.password)
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/plaza'
-    await router.push(redirect)
-  } catch {
-    // The store exposes a user-facing message.
+const mode = ref<Mode>('login')
+const showPreview = ALLOW_PREVIEW
+
+function selectMode(next: Mode): void {
+  mode.value = next
+}
+
+function onTabKeydown(event: KeyboardEvent, current: Mode): void {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+    return
   }
+  event.preventDefault()
+  const next: Mode = current === 'login' ? 'register' : 'login'
+  selectMode(next)
+  void nextTick(() => {
+    document.getElementById(next === 'login' ? 'auth-tab-login' : 'auth-tab-register')?.focus()
+  })
 }
 
 async function enterPreview(): Promise<void> {
   auth.startPreview()
-  await router.push('/plaza')
+  await router.push(resolveAuthRedirect(auth, route.query.redirect))
 }
 </script>
 
 <template>
   <div class="auth-wrap container">
     <div class="auth-card">
-      <p class="eyebrow">Welcome back</p>
-      <h1>登录 Cohabit</h1>
-      <p class="lede">用校园邮箱登录。开发期验证码固定为 123456；正式环境会切换为邮件验证。</p>
+      <p class="eyebrow">{{ mode === 'login' ? 'Welcome back' : 'Join Cohabit' }}</p>
+      <h1>{{ mode === 'login' ? '登录 Cohabit' : '用校园邮箱开始' }}</h1>
+      <p class="lede">
+        {{
+          mode === 'login'
+            ? '用校园邮箱登录；登录状态只保存在当前页面的内存里，刷新后会自动恢复。'
+            : '先留下基本资料；注册完成后，用两三分钟把你的“住法”说清楚。'
+        }}
+      </p>
 
-      <form class="form-grid" @submit.prevent="submit">
-        <div class="field">
-          <label for="email">邮箱</label>
-          <input
-            id="email"
-            v-model="form.email"
-            type="email"
-            autocomplete="email"
-            placeholder="demo001@stu.edu.cn"
-            required
-          />
-        </div>
-        <div class="field">
-          <label for="password">密码</label>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            autocomplete="current-password"
-            placeholder="至少 8 位"
-            required
-          />
-        </div>
-
-        <p v-if="auth.error" class="error-box" role="alert">{{ auth.error }}</p>
-
-        <button class="btn btn-primary" type="submit" :disabled="submitting">
-          {{ submitting ? '登录中…' : '登录' }}
+      <div class="tabs auth-tabs" role="tablist" aria-label="登录或注册">
+        <button
+          id="auth-tab-login"
+          class="tab"
+          :class="{ active: mode === 'login' }"
+          type="button"
+          role="tab"
+          :aria-selected="mode === 'login'"
+          aria-controls="auth-panel-login"
+          :tabindex="mode === 'login' ? 0 : -1"
+          @click="selectMode('login')"
+          @keydown="onTabKeydown($event, 'login')"
+        >
+          登录
         </button>
-      </form>
+        <button
+          id="auth-tab-register"
+          class="tab"
+          :class="{ active: mode === 'register' }"
+          type="button"
+          role="tab"
+          :aria-selected="mode === 'register'"
+          aria-controls="auth-panel-register"
+          :tabindex="mode === 'register' ? 0 : -1"
+          @click="selectMode('register')"
+          @keydown="onTabKeydown($event, 'register')"
+        >
+          注册
+        </button>
+      </div>
 
-      <p class="fine" style="margin-top: 16px">
-        还没有账号？注册入口将在后端认证接口接入后开放。
-        <RouterLink to="/" style="text-decoration: underline">先回首页</RouterLink>
+      <div
+        id="auth-panel-login"
+        role="tabpanel"
+        aria-labelledby="auth-tab-login"
+        v-show="mode === 'login'"
+      >
+        <LoginPanel :active="mode === 'login'" @switch="selectMode" />
+      </div>
+
+      <div
+        id="auth-panel-register"
+        role="tabpanel"
+        aria-labelledby="auth-tab-register"
+        v-show="mode === 'register'"
+      >
+        <RegisterPanel :active="mode === 'register'" @switch="selectMode" />
+      </div>
+
+      <p class="fine auth-home-link">
+        <RouterLink to="/">先回首页看看</RouterLink>
       </p>
 
       <div v-if="showPreview" class="preview-note">
-        <p style="margin: 0 0 10px">后端未启动时，可进入前端预览模式查看页面框架；预览不写入数据。</p>
+        <p class="preview-copy">
+          后端未启动时，可进入前端预览模式查看页面框架；预览不写入数据，也不会保存登录状态。
+        </p>
         <button class="btn btn-small btn-ghost" type="button" @click="enterPreview">
           前端预览模式
         </button>

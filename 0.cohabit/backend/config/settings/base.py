@@ -90,6 +90,8 @@ INSTALLED_APPS = [
     "apps.adminops",
 ]
 
+AUTH_USER_MODEL = "accounts.User"
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -194,7 +196,7 @@ JAZZMIN_SETTINGS = {
     "site_brand": "Cohabit",
     "welcome_sign": "Cohabit 运营后台",
     "copyright": "Cohabit",
-    "search_model": ["auth.User"],
+    "search_model": ["accounts.User"],
     "topmenu_links": [],
     "show_ui_builder": False,
 }

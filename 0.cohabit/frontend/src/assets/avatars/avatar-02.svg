@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="默认头像 02">
+  <rect width="96" height="96" rx="48" fill="#F3EEE6"/>
+  <rect x="28" y="28" width="34" height="34" rx="8" fill="#E9E0D3" transform="rotate(45 45 45)"/>
+  <circle cx="64" cy="62" r="10" fill="#F0603C"/>
+</svg>

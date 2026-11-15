@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -13,16 +13,28 @@ const navItems = [
   { to: '/rooms', label: '寝室' },
 ] as const
 
-const userLabel = computed(() => auth.user?.nickname || '我的')
+const userLabel = computed(() => auth.displayName || '我的')
+const avatarInitial = computed(() => userLabel.value.slice(0, 1).toUpperCase())
+const signingOut = ref(false)
 
-function signOut(): void {
-  auth.logout()
-  router.push({ name: 'login' })
+async function signOut(): Promise<void> {
+  if (signingOut.value) {
+    return
+  }
+  signingOut.value = true
+  try {
+    await auth.logout()
+    await router.push({ name: 'login' })
+  } finally {
+    signingOut.value = false
+  }
 }
 </script>
 
 <template>
   <div class="app-shell">
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
     <header class="site-header">
       <div class="container header-inner">
         <RouterLink class="brand" to="/" aria-label="Cohabit 首页">
@@ -33,14 +45,39 @@ function signOut(): void {
         <nav class="primary-nav" aria-label="主导航">
           <RouterLink v-for="item in navItems" :key="item.to" :to="item.to" class="nav-link">
             {{ item.label }}
+            <span
+              v-if="item.to === '/connections' && auth.unreadCount > 0"
+              class="nav-badge"
+              :aria-label="`${auth.unreadCount} 条未读`"
+            >
+              {{ auth.unreadCount > 9 ? '9+' : auth.unreadCount }}
+            </span>
           </RouterLink>
         </nav>
 
         <div class="header-actions">
           <template v-if="auth.isAuthenticated">
             <span v-if="auth.isPreview" class="chip chip-warn">预览模式</span>
-            <RouterLink class="nav-link user-link" to="/profile">{{ userLabel }}</RouterLink>
-            <button class="btn btn-small btn-ghost" type="button" @click="signOut">退出</button>
+            <RouterLink
+              v-else-if="!auth.isProfileComplete"
+              class="chip profile-chip"
+              to="/onboarding"
+              title="完成画像后才能开始匹配"
+            >
+              画像待完成
+            </RouterLink>
+            <RouterLink class="user-link" to="/profile">
+              <span class="avatar" aria-hidden="true">{{ avatarInitial }}</span>
+              <span class="user-name">{{ userLabel }}</span>
+            </RouterLink>
+            <button
+              class="btn btn-small btn-ghost"
+              type="button"
+              :disabled="signingOut"
+              @click="signOut"
+            >
+              {{ signingOut ? '退出中…' : '退出' }}
+            </button>
           </template>
           <template v-else>
             <RouterLink class="btn btn-small btn-primary" to="/login">登录</RouterLink>
@@ -49,7 +86,7 @@ function signOut(): void {
       </div>
     </header>
 
-    <main class="site-main">
+    <main id="main" class="site-main" tabindex="-1">
       <RouterView />
     </main>
 
@@ -67,6 +104,22 @@ function signOut(): void {
   display: flex;
   min-height: 100vh;
   flex-direction: column;
+}
+
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: -9999px;
+  z-index: 60;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 13px;
+}
+
+.skip-link:focus {
+  left: 16px;
 }
 
 .site-header {
@@ -118,6 +171,9 @@ function signOut(): void {
 }
 
 .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--muted);
   font-size: 14px;
   transition: color 160ms ease;
@@ -128,14 +184,58 @@ function signOut(): void {
   color: var(--ink);
 }
 
+.nav-badge {
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  padding: 0 5px;
+  background: var(--coral);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
+.profile-chip {
+  border-color: var(--sand-deep);
+  background: var(--sand);
+  color: var(--ink);
+}
+
 .user-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
+}
+
+.avatar {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--sand-deep);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.user-name {
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chip-warn {
@@ -179,6 +279,16 @@ function signOut(): void {
 
   .header-actions {
     margin-left: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-chip {
+    display: none;
+  }
+
+  .user-name {
+    display: none;
   }
 }
 </style>

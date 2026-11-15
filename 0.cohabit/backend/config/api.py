@@ -12,7 +12,7 @@ class StandardPagination(PageNumberPagination):
 
     page_size = 20
     page_size_query_param = "page_size"
-    max_page_size = 100
+    max_page_size = 50
 
 
 def _default_message(data: Any) -> str:

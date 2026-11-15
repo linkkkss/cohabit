@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="默认头像 04">
+  <rect width="96" height="96" rx="48" fill="#F3EEE6"/>
+  <path d="M48 24a24 24 0 0 1 0 48" fill="none" stroke="#F0603C" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="34" cy="60" r="7" fill="#191919"/>
+</svg>
