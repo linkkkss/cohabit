@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import NotificationBell from '@/components/notifications/NotificationBell.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -66,6 +67,7 @@ async function signOut(): Promise<void> {
             >
               画像待完成
             </RouterLink>
+            <NotificationBell />
             <RouterLink class="user-link" to="/profile">
               <span class="avatar" aria-hidden="true">{{ avatarInitial }}</span>
               <span class="user-name">{{ userLabel }}</span>

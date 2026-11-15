@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
+import {
+  createConnection,
+  connectionErrorMessage,
+} from '@/api/connections'
 import { fetchPublicUser, fetchQuestionnaire, type PublicUser, type Questionnaire } from '@/api/profiles'
 import type { MatchScore } from '@/api/matching'
 import AvatarBadge from '@/components/common/AvatarBadge.vue'
@@ -8,9 +13,9 @@ import TagChips from '@/components/common/TagChips.vue'
 import DimCompare from '@/components/match/DimCompare.vue'
 
 /**
- * 匹配详情（docs/05 §7.2）：用原生 `<dialog>`，Esc 关闭、打开时焦点进弹层。
- * `/match/:uid` 路由不在 F1 的路由表里（路由不在本任务写权限内），
- * 所以详情是 `/match` 页内的弹层，而不是独立页；移动端操作条固定在弹层底部。
+ * 匹配详情（docs/05 §7.2、docs/07 2:50–3:20）：用原生 `<dialog>`，Esc 关闭、
+ * 打开时焦点进弹层。`/match/:uid` 路由不在 F1 的路由表里，所以详情是
+ * `/match` 页内的弹层；底部吸底操作是“发起邀请”+“关闭”，邀请可选容量与留言。
  *
  * 自述需要 `GET /api/users/:uid`（公开摘要）另取；联系方式在这个弹层里也不展示。
  */
@@ -27,6 +32,20 @@ const dialogRef = ref<HTMLDialogElement | null>(null)
 const publicUser = ref<PublicUser | null>(null)
 const questionnaire = ref<Questionnaire | null>(null)
 const promptsStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
+
+/** 发起邀请（docs/04 §4.4：INVITE + capacity_pref；留言由后端截到 200 字）。 */
+type InviteStatus = 'idle' | 'submitting' | 'success' | 'error'
+const CAPACITY_OPTIONS: Array<2 | 4 | 6> = [2, 4, 6]
+const MESSAGE_MAX_LENGTH = 500
+const MESSAGE_SEND_LIMIT = 200
+const capacity = ref<2 | 4 | 6>(4)
+const message = ref('')
+const inviteStatus = ref<InviteStatus>('idle')
+const inviteError = ref('')
+const sentTo = ref('')
+
+const submitting = computed(() => inviteStatus.value === 'submitting')
+const messageOverSendLimit = computed(() => message.value.length > MESSAGE_SEND_LIMIT)
 
 const meta = computed(() => {
   const target = props.match?.target
@@ -78,6 +97,37 @@ async function loadPublic(): Promise<void> {
   }
 }
 
+function resetInvite(): void {
+  capacity.value = 4
+  message.value = ''
+  inviteStatus.value = 'idle'
+  inviteError.value = ''
+  sentTo.value = ''
+}
+
+async function submitInvite(): Promise<void> {
+  const target = props.match?.target
+  if (!target || inviteStatus.value === 'submitting' || inviteStatus.value === 'success') {
+    return
+  }
+  inviteStatus.value = 'submitting'
+  inviteError.value = ''
+  try {
+    const text = message.value.trim().slice(0, MESSAGE_SEND_LIMIT)
+    await createConnection({
+      type: 'INVITE',
+      target_uid: target.uid,
+      capacity_pref: capacity.value,
+      message: text || undefined,
+    })
+    sentTo.value = target.nickname
+    inviteStatus.value = 'success'
+  } catch (error) {
+    inviteStatus.value = 'error'
+    inviteError.value = connectionErrorMessage(error, '邀请没有发送成功，请稍后重试。')
+  }
+}
+
 function openDialog(): void {
   const element = dialogRef.value
   if (!element) {
@@ -94,6 +144,7 @@ function closeDialog(): void {
 }
 
 function onClose(): void {
+  resetInvite()
   emit('update:open', false)
 }
 
@@ -101,6 +152,7 @@ watch(
   () => props.open,
   (value) => {
     if (value) {
+      resetInvite()
       openDialog()
     } else if (dialogRef.value?.open) {
       closeDialog()
@@ -111,6 +163,7 @@ watch(
 watch(
   () => props.match?.target.uid,
   () => {
+    resetInvite()
     if (props.open) {
       void loadPublic()
     }
@@ -191,11 +244,82 @@ onMounted(() => {
         </div>
       </section>
 
-      <p class="fine dialog-unlock">双方都同意后，这里会显示彼此的联系方式。</p>
+      <section v-if="inviteStatus === 'success'" class="invite-success" role="status">
+        <p class="eyebrow">已发送</p>
+        <h3>已发送，等待对方同意</h3>
+        <p class="fine">
+          邀请已发给 {{ sentTo }}。对方同意后，你们会看到彼此的联系方式；双方都确认后才会组成寝室。
+        </p>
+        <RouterLink
+          class="btn btn-small btn-primary"
+          :to="{ name: 'connections', query: { role: 'sent' } }"
+        >
+          查看发出的请求
+        </RouterLink>
+      </section>
+
+      <section v-else class="dialog-section invite-section">
+        <h3>发起邀请</h3>
+        <fieldset class="choice-field">
+          <legend class="field-legend">期望容量</legend>
+          <div class="choice-group">
+            <label
+              v-for="option in CAPACITY_OPTIONS"
+              :key="option"
+              class="choice"
+              :class="{ selected: capacity === option }"
+            >
+              <input v-model.number="capacity" type="radio" name="match-capacity" :value="option" />
+              <span>{{ option }} 人寝</span>
+            </label>
+          </div>
+          <p class="fine">默认 4 人；寝室建立后容量不可修改。</p>
+        </fieldset>
+        <label class="field" for="match-invite-message">
+          <span>留言（可选）</span>
+          <textarea
+            id="match-invite-message"
+            v-model="message"
+            rows="3"
+            :maxlength="MESSAGE_MAX_LENGTH"
+            placeholder="想找作息接近、能一起自习的室友"
+          ></textarea>
+        </label>
+        <p class="fine">
+          写清作息和整洁习惯会更容易被接受。留言最多 500 字，发送时保留前 200 字。
+        </p>
+        <p v-if="messageOverSendLimit" class="invite-warn">
+          留言超过 200 字，发送时只会保留前 200 字。
+        </p>
+      </section>
+
+      <p v-if="inviteStatus !== 'success'" class="fine dialog-unlock">
+        双方都同意后，这里会显示彼此的联系方式。
+      </p>
     </div>
 
     <footer class="dialog-foot">
-      <button type="button" class="btn btn-primary btn-block" @click="closeDialog">关闭</button>
+      <NoticeBar
+        v-if="inviteStatus === 'error' && inviteError"
+        tone="error"
+        title="邀请没有发送成功"
+      >
+        {{ inviteError }}
+      </NoticeBar>
+      <div class="dialog-actions">
+        <button
+          v-if="inviteStatus !== 'success'"
+          type="button"
+          class="btn btn-primary"
+          :disabled="!match || submitting"
+          @click="submitInvite"
+        >
+          {{ submitting ? '发送中…' : '发起邀请' }}
+        </button>
+        <button type="button" class="btn btn-ghost" :disabled="submitting" @click="closeDialog">
+          关闭
+        </button>
+      </div>
     </footer>
   </dialog>
 </template>
@@ -212,15 +336,21 @@ onMounted(() => {
   color: var(--ink);
 }
 
+.match-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
 .match-dialog::backdrop {
   background: color-mix(in srgb, var(--ink) 45%, transparent);
 }
 
 .dialog-body {
   display: grid;
+  flex: 1 1 auto;
   gap: 18px;
   overflow: auto;
-  max-height: calc(88vh - 76px);
+  min-height: 0;
   padding: 22px;
 }
 
@@ -347,12 +477,68 @@ onMounted(() => {
   margin: 0;
 }
 
+.invite-section .field > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.invite-section .field textarea {
+  min-height: 92px;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.invite-warn {
+  margin: 0;
+  color: var(--coral-dark);
+  font-size: 12px;
+}
+
+.invite-success {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  background: var(--sand);
+}
+
+.invite-success .eyebrow {
+  margin: 0;
+}
+
+.invite-success h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.invite-success .fine {
+  margin: 0;
+}
+
 .dialog-foot {
   position: sticky;
   bottom: 0;
+  display: grid;
+  gap: 10px;
   border-top: 1px solid var(--line);
   padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
   background: var(--paper);
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.dialog-actions .btn {
+  flex: 1;
+  min-height: 44px;
 }
 
 .dialog-foot .btn {
@@ -367,12 +553,15 @@ onMounted(() => {
   }
 
   .dialog-body {
-    max-height: calc(92vh - 76px);
     padding: 18px 16px;
   }
 
   .dialog-foot {
     padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .dialog-actions {
+    flex-direction: column;
   }
 }
 </style>

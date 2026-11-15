@@ -60,6 +60,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '组寝请求', requiresAuth: true },
   },
   {
+    path: '/connections/:id(\\d+)',
+    name: 'connection-detail',
+    component: () => import('@/views/ConnectionsView.vue'),
+    meta: { title: '请求详情', requiresAuth: true },
+  },
+  {
+    path: '/notifications',
+    name: 'notifications',
+    component: () => import('@/views/NotificationsView.vue'),
+    meta: { title: '通知', requiresAuth: true },
+  },
+  {
     path: '/rooms',
     name: 'rooms',
     component: () => import('@/views/RoomsView.vue'),
@@ -70,6 +82,13 @@ const routes: RouteRecordRaw[] = [
     name: 'room-detail',
     component: () => import('@/views/RoomDetailView.vue'),
     meta: { title: '寝室详情' },
+  },
+  {
+    // 公开分享页（docs/05 §7.1，P4 新增）：无鉴权，只展示寝室概况。
+    path: '/r/:code',
+    name: 'public-room',
+    component: () => import('@/views/PublicRoomView.vue'),
+    meta: { title: '寝室分享' },
   },
   {
     path: '/profile',

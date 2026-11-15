@@ -84,7 +84,13 @@ class ConnectionRequest(BaseModel):
         "发起人确认时间", null=True, blank=True
     )
     target_confirm_at = models.DateTimeField("目标确认时间", null=True, blank=True)
-    expires_at = models.DateTimeField("过期时间", db_index=True)
+    expires_at = models.DateTimeField(
+        "过期时间",
+        db_index=True,
+        null=True,
+        blank=True,
+        help_text="CONFIRMED 为空；其余在途状态必有值",
+    )
     closed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
