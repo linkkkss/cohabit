@@ -1158,8 +1158,15 @@ class Command(BaseCommand):
         # I-01 账号
         if len(student_pks) != 40:
             self._fail("I-01", f"students={len(student_pks)}")
-        if User.objects.filter(role=User.Role.ADMIN).count() != 1:
-            self._fail("I-01", "admin != 1")
+        # 只校验本命令创建的种子管理员存在且唯一；运维手工创建的额外 ADMIN
+        # 允许存在，且 --reset 不会删除它们。
+        if (
+            User.objects.filter(
+                uid=ADMIN_UID, email=ADMIN_EMAIL, role=User.Role.ADMIN
+            ).count()
+            != 1
+        ):
+            self._fail("I-01", "seed admin != 1")
         if len({user.email for user in students}) != 40:
             self._fail("I-01", "duplicate email")
 

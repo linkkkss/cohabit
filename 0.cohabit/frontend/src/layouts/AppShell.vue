@@ -13,6 +13,7 @@ import { RouterLink, RouterView, useRouter } from 'vue-router'
 import NotificationBell from '@/components/notifications/NotificationBell.vue'
 import NetworkNotice from '@/components/shell/NetworkNotice.vue'
 import UserMenu from '@/components/shell/UserMenu.vue'
+import TimeWindowBanner from '@/components/timewindow/TimeWindowBanner.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -194,6 +195,9 @@ onBeforeUnmount(() => {
       <div v-if="routeBusy" class="route-progress" aria-hidden="true" />
       <p class="sr-only" role="status" aria-live="polite">{{ routeBusy ? '正在加载页面' : '' }}</p>
     </header>
+
+    <!-- 时间窗横幅（WK-03）：登录后挂载、登出即卸载，组件自行拉取状态。 -->
+    <TimeWindowBanner v-if="auth.isAuthenticated" />
 
     <main id="main" ref="mainRef" class="site-main" tabindex="-1">
       <section v-if="shellError" class="container shell-error" role="alert">

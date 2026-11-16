@@ -188,6 +188,34 @@ def test_seed_demo_rejects_production_environment(settings, monkeypatch):
     assert "生产环境" in str(excinfo.value)
 
 
+def test_seed_demo_reset_keeps_extra_admin():
+    """P3-2：手工创建的额外 ADMIN 允许存在，--reset 不因 I-01 失败且不删除它。"""
+    extra = User.objects.create_superuser(
+        email="ops-admin@cohabit.local",
+        password="OpsAdmin1234!",
+        uid="0000000098",
+        nickname="额外管理员",
+        gender=User.Gender.MALE,
+        college="计算机学院",
+    )
+    assert extra.role == User.Role.ADMIN
+
+    output = run_seed("--reset")
+
+    assert "seed_demo: ok" in output
+    extra.refresh_from_db()
+    assert extra.role == User.Role.ADMIN
+    assert User.objects.filter(pk=extra.pk).exists()
+    # 种子管理员依然存在且唯一；全库 ADMIN 数允许 >1。
+    assert (
+        User.objects.filter(
+            uid="0000000099", email=ADMIN_EMAIL, role=User.Role.ADMIN
+        ).count()
+        == 1
+    )
+    assert User.objects.filter(role=User.Role.ADMIN).count() == 2
+
+
 def RoomTransfer_count() -> int:
     from apps.rooms.models import RoomTransfer
 
