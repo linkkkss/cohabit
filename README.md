@@ -27,8 +27,9 @@ cohabit/
 - [组寝状态机（02）](<docs/02-组寝状态机.md>) ｜ [数据字典与问卷（03）](<docs/03-数据字典与问卷.md>)（已批准，2026-11-15）
 - [API 契约（04）](<docs/04-API契约.md>) ｜ [OpenAPI 3.0.3](<docs/openapi.yaml>) ｜ [ER v2](<docs/ER-v2.md>)（已批准，2026-11-15）
 - [开发日记](<docs/开发日记.md>)（每日任务与完成情况）
-- 产品材料：[视觉与组件规范（05）](<docs/05-视觉与组件规范.md>) ｜ [验收清单（06）](<docs/06-验收清单.md>) ｜ [演示脚本（07）](<docs/07-演示脚本.md>) ｜ [seed 规格](<docs/seed-spec.md>)
-- 当前进度：**基础层 + 画像/匹配已完成（2026-11-15）**；团队 `cohabit-m1` 的 t1–t11 全部完成（实际覆盖手册 M1–M3），后端 151 tests、前端 build 182 modules 通过；**M4 组寝闭环已完成并通过验收（2026-11-15）**（`cohabit-m4`：通知→寝室→连接→seed→前端→QA；后端全量 **544 passed**、前端 build **242 modules**；验收记录见 [06 验收清单](<docs/06-验收清单.md>) §14，结论“M4 通过，P0/P1=0”）；**M5 管理与打磨已完成并通过验收（2026-11-16）**（`cohabit-m5`：举报/拉黑、定时维护、Admin 导出/级联、账号注销/health/stats、设置/规则/隐私、移动端与空态；后端全量 **704 passed**、前端 build **266 modules**；验收记录见 [06 验收清单](<docs/06-验收清单.md>) §15，结论“M5 通过，P0/P1=0”）
+- 产品材料：[视觉与组件规范（05）](<docs/05-视觉与组件规范.md>) ｜ [验收清单（06）](<docs/06-验收清单.md>) ｜ [演示脚本（07）](<docs/07-演示脚本.md>) ｜ [缺陷清单（08）](<docs/08-缺陷清单.md>) ｜ [seed 规格](<docs/seed-spec.md>)
+- 使用手册：[用户使用手册](<docs/用户使用手册.md>) ｜ [管理员使用手册（含团队本地开发与联调附录 D）](<docs/管理员使用手册.md#ad>)
+- 当前进度：**基础层 + 画像/匹配已完成（2026-11-15）**；团队 `cohabit-m1` 的 t1–t11 全部完成（实际覆盖手册 M1–M3），后端 151 tests、前端 build 182 modules 通过；**M4 组寝闭环已完成并通过验收（2026-11-15）**（`cohabit-m4`：通知→寝室→连接→seed→前端→QA；后端全量 **544 passed**、前端 build **242 modules**；验收记录见 [06 验收清单](<docs/06-验收清单.md>) §14，结论“M4 通过，P0/P1=0”）；**M5 管理与打磨已完成并通过验收（2026-11-16）**（`cohabit-m5`：举报/拉黑、定时维护、Admin 导出/级联、账号注销/health/stats、设置/规则/隐私、移动端与空态；后端全量 **704 passed**、前端 build **266 modules**；验收记录见 [06 验收清单](<docs/06-验收清单.md>) §15，结论“M5 通过，P0/P1=0”）；**M6 本地冻结与 M6F 缺陷修复完成（2026-11-16）**（生产化冒烟、4:30 全链路彩排 13/13；M6F 修复时间窗状态 API/横幅、dev Admin CSRF、seed 额外 ADMIN；`pytest` **721 passed**、`build` **270 modules**；P0–P3=0，见 [06 §17](<docs/06-验收清单.md>) 与 [08 缺陷清单](<docs/08-缺陷清单.md>)）
 - 历史文档（v1，仅作参考，冲突时以 v2 为准）：
   - [Cohabit 开发手册（v1）.md](<Cohabit开发手册（v1）.md>)
   - [数据模型（Django）.md](<数据模型（Django）.md>)
@@ -42,7 +43,9 @@ cohabit/
 
 **M4 组寝闭环已完成并通过验收（2026-11-15）**：`cohabit-m4` 完成通知、寝室状态机/API、连接三入口与两步确认、seed/Admin、连接与寝室前端页面、匹配详情发起邀请、R-13 回寝拒绝与 confirm 响应快照修复。后端全量 pytest **544 passed**，check/makemigrations --check/ruff 全绿；前端 build **242 modules**；Q2 在隔离库 `cohabit_m4_qa` 完成 API 171 项、UI 22 项、FA-04 全链路 13 项，结论 **M4 通过（P0/P1=0）**，记录见 [06 验收清单 §14](<docs/06-验收清单.md>)。演示库已执行 `seed_demo --reset`（41 用户/6 寝/8 请求/79 通知）。
 
-**M5 管理与打磨已完成并通过验收（2026-11-16）**：`cohabit-m5` 完成 t1–t10：举报/拉黑 API 与副作用、定时维护命令（归档/过期/提醒/清理/转让/`member_count` 修复）、Admin 筛选/动作/6+2 类 CSV 导出/强制解散/删除保护/联系方式审计、账号注销与禁用级联、`/api/health` DB 探测与 `/api/admin/stats`、设置/规则/隐私页、通知中心与安全入口、移动端/404/空态、S-06 学生端角色守卫、创建寝室 5 次/日限频。后端全量 pytest **704 passed**，check/makemigrations --check/ruff 全绿；前端 build **266 modules**（含 `vue-tsc`）；Q3 在隔离库 `cohabit_m5_qa` 完成 API **432/432**、UI 375/768/1280 走查（46 张截图、console 0 error），结论 **M5 通过（P0/P1=0）**，记录见 [06 验收清单 §15](<docs/06-验收清单.md>)；演示脚本已更新为 [07 M5 v3](<docs/07-演示脚本.md>)。已知 P2：WK-03 窗口关闭横幅留待 M6；P3：Admin 经 Vite 代理登录受 CSRF 限制，演示走直连 8000。
+**M5 管理与打磨已完成并通过验收（2026-11-16）**：`cohabit-m5` 完成 t1–t10：举报/拉黑 API 与副作用、定时维护命令（归档/过期/提醒/清理/转让/`member_count` 修复）、Admin 筛选/动作/6+2 类 CSV 导出/强制解散/删除保护/联系方式审计、账号注销与禁用级联、`/api/health` DB 探测与 `/api/admin/stats`、设置/规则/隐私页、通知中心与安全入口、移动端/404/空态、S-06 学生端角色守卫、创建寝室 5 次/日限频。后端全量 pytest **704 passed**，check/makemigrations --check/ruff 全绿；前端 build **266 modules**（含 `vue-tsc`）；Q3 在隔离库 `cohabit_m5_qa` 完成 API **432/432**、UI 375/768/1280 走查（46 张截图、console 0 error），结论 **M5 通过（P0/P1=0）**，记录见 [06 验收清单 §15](<docs/06-验收清单.md>)；演示脚本已更新为 [07 v4](<docs/07-演示脚本.md>)。上述 P2/P3 已在 M6F 修复（06 §17）。
+
+**M6 本地冻结与 M6F 缺陷修复已完成（2026-11-16）**：不新增业务功能；用 `config.settings.base` + `DEBUG=false` 做本地生产化冒烟（`collectstatic` 257 files，`/api/health/`、`/admin/login/`、admin 静态与 `npm run preview` 均 200）；`.walkthrough/qa_m4_fa04.cjs` 全链路 13/13（注册→问卷→匹配→邀请→接受→两步确认→建寝 #844756057），彩排后 `seed_demo --reset` 恢复基线。M6F 修复时间窗 API/横幅、dev Admin CSRF、seed 额外 ADMIN，`pytest` **721 passed**、`build` **270 modules**、P0–P3=0，见 [06 §17](<docs/06-验收清单.md>) 与 [08 缺陷清单](<docs/08-缺陷清单.md>)；M6 记录见 [06 §16](<docs/06-验收清单.md>)，M6F 记录见 §17；`docs/07` 已更新为 v4（加时间窗横幅镜头）。Git 提交与 `v0.6-mvp` tag 由用户手动完成，Agent 未自动 commit/tag。
 
 > 开发手册、02、03、04/OpenAPI/ER 均已获用户批准（按文档执行）。网站代码只写 `0.cohabit/`，`docs/` 只放契约与记录。
 
@@ -83,4 +86,4 @@ npm run dev
 
 - **migrate 已解锁**：自定义 `accounts.User` 已由 t1 落地并执行首次迁移；重建数据库后可直接 `migrate`，不得回退到默认 `auth.User`。
 - 环境已验证：后端 `manage.py check` 0 问题；前端 `npm run build` 成功；PostgreSQL 16.16 角色/数据库可连接。
-- 下一步（按手册 §15.2）：M1、M4、M5 均已完成并通过验收（704 tests / build 266 modules / 06 §15）；用户手动提交 Git 后进入 **M6 本地冻结**（全链路演示脚本、种子数据、构建产物、缺陷清单；5 分钟演示一次过、`pytest`/`build` 全绿、文档同步）。
+- 下一步（按手册 §15.2）：M1、M4、M5、M6 均已完成；M6 本地冻结与 M6F 缺陷修复通过（721 tests / build 270 modules / 06 §16、§17 / 08 缺陷清单）。用户手动提交 Git 并创建 `v0.6-mvp` tag；部署/答辩按手册 §11.3 后置，冻结线仅允许 P0 修复。
