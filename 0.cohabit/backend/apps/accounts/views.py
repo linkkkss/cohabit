@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts import conf, services
+from apps.accounts import conf, lifecycle, services
 from apps.accounts.exceptions import ApiError, accounts_exception_handler
 from apps.accounts.serializers import (
     LoginSerializer,
@@ -26,6 +26,11 @@ class AccountsAPIView(APIView):
 
     def get_exception_handler(self) -> Any:
         return accounts_exception_handler
+
+
+def _request_id(request: Request) -> str:
+    value = request.headers.get("X-Request-Id") or request.META.get("HTTP_X_REQUEST_ID")
+    return str(value or "")[:64]
 
 
 def _client_ip(request: Request) -> str:
@@ -176,4 +181,16 @@ class MeView(AccountsAPIView):
                 setattr(request.user, field, value)
             request.user.save(update_fields=[*updates.keys(), "updated_at"])
         return Response(MeSerializer(request.user).data)
+
+    def delete(self, request: Request) -> Response:
+        """注销本人账号（docs/04 §4.1）：逻辑删除 + 级联，成功 204。"""
+        lifecycle.disable_account(
+            request.user,
+            actor=request.user,
+            request_id=_request_id(request),
+            reason="SELF_DELETE",
+        )
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        services.clear_refresh_cookie(response)
+        return response
 

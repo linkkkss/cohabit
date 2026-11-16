@@ -22,6 +22,9 @@
   --muted: #6f6b66;
   --font-serif: "Newsreader", "Noto Serif SC", "Songti SC", serif;
   --font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  /* 外壳占位：头部高度由 AppShell 实测覆盖；离线横条出现时由 NetworkNotice 撑高。 */
+  --shell-header-h: 72px;
+  --shell-notice-h: 0px;
   color-scheme: light;
 }
 
@@ -31,6 +34,8 @@
 
 html {
   scroll-behavior: smooth;
+  /* sticky 头部（高度由 AppShell 实测）不遮挡锚点目标。 */
+  scroll-padding-top: calc(var(--shell-header-h, 72px) + var(--shell-notice-h, 0px) + 16px);
 }
 
 body {
@@ -65,6 +70,29 @@ button {
   margin-inline: auto;
 }
 
+/* 仅对读屏可见（外壳的状态播报、跳转提示等）。 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 程序聚焦 main（tabindex="-1"）时不要画出焦点环，视觉焦点由页面内容承担。 */
+#main:focus {
+  outline: none;
+}
+
+/* 锚点目标与 sticky 头部留出呼吸空间。 */
+[id] {
+  scroll-margin-top: 16px;
+}
+
 .muted {
   color: var(--muted);
 }
@@ -89,7 +117,8 @@ button {
   font-family: var(--font-serif);
   font-size: clamp(42px, 7vw, 76px);
   font-weight: 500;
-  letter-spacing: -0.035em;
+  /* 中文标题保持 0 字距（docs/05 §2.2）。 */
+  letter-spacing: 0;
   line-height: 0.98;
 }
 
@@ -127,7 +156,7 @@ button {
   font-family: var(--font-serif);
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 500;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   line-height: 1.1;
 }
 
@@ -411,7 +440,7 @@ button {
   font-family: var(--font-serif);
   font-size: 36px;
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
 }
 
 .auth-card .lede {
@@ -626,7 +655,7 @@ button {
   font-family: var(--font-serif);
   font-size: clamp(32px, 5vw, 48px);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   line-height: 1.05;
 }
 
@@ -1032,5 +1061,24 @@ button {
 
   .code-row .btn {
     width: 100%;
+  }
+}
+
+/*
+ * 动效偏好（docs/05 §2.4）：reduce 下关闭全部过渡与动画，
+ * 包括骨架屏闪烁与路由进度条，避免前庭不适。
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

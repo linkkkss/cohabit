@@ -16,7 +16,8 @@ import StateBlock from '@/components/common/StateBlock.vue'
 import ConfirmDialog from '@/components/rooms/ConfirmDialog.vue'
 import ConnectionCard from '@/components/connections/ConnectionCard.vue'
 import ConnectionDetailPanel from '@/components/connections/ConnectionDetailPanel.vue'
-import { connectionPath } from '@/components/connections/connectionFormat'
+import { connectionCounterpart, connectionPath } from '@/components/connections/connectionFormat'
+import SecurityActions from '@/components/security/SecurityActions.vue'
 
 /**
  * 请求列表（docs/04 §4.4；docs/05 §7.2）：收到的 / 发出的两个 tab，
@@ -237,6 +238,18 @@ function onVisibilityChange(): void {
   }
 }
 
+/** 列表里的安全入口：拉黑会由后端关闭进行中的请求，所以重新拉取列表。 */
+function onReported(): void {
+  notice.value = '举报已提交，管理员会核实。对方不会收到你举报的通知。'
+}
+
+async function onBlocked(_uid: string): Promise<void> {
+  actionError.value = ''
+  // load(true) 会清空提示，所以先重新拉取列表，再显示拉黑结果。
+  await load(true)
+  notice.value = '已拉黑。双方进行中的请求已关闭，对方不能再邀请你。'
+}
+
 watch(
   () => route.params.id,
   (value) => {
@@ -357,16 +370,26 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-else class="connection-list">
-      <ConnectionCard
-        v-for="connection in items"
-        :key="connection.id"
-        :connection="connection"
-        :busy="busyId === connection.id"
-        @accept="accept(connection)"
-        @decline="openDialog(connection, 'decline')"
-        @confirm="router.push(connectionPath(connection.id))"
-        @cancel="openDialog(connection, 'cancel')"
-      />
+      <div v-for="connection in items" :key="connection.id" class="connection-item">
+        <ConnectionCard
+          :connection="connection"
+          :busy="busyId === connection.id"
+          @accept="accept(connection)"
+          @decline="openDialog(connection, 'decline')"
+          @confirm="router.push(connectionPath(connection.id))"
+          @cancel="openDialog(connection, 'cancel')"
+        />
+        <div class="connection-security">
+          <SecurityActions
+            target-type="CONNECTION"
+            :target-id="connection.id"
+            :target-name="connectionCounterpart(connection)?.nickname ?? ''"
+            :block-uid="connectionCounterpart(connection)?.uid ?? ''"
+            @reported="onReported"
+            @blocked="onBlocked"
+          />
+        </div>
+      </div>
       <button
         v-if="hasMore"
         type="button"
@@ -460,6 +483,16 @@ onBeforeUnmount(() => {
 .connection-list {
   display: grid;
   gap: 12px;
+}
+
+.connection-item {
+  display: grid;
+  gap: 6px;
+}
+
+.connection-security {
+  justify-self: end;
+  padding-right: 4px;
 }
 
 .connections-empty {

@@ -45,7 +45,11 @@ const markingAll = ref(false)
 
 const hasMore = computed(() => items.value.length < total.value)
 const unreadOnly = computed(() => filter.value === 'unread')
-const disableMarkAll = computed(() => markingAll.value || unreadCount.value === 0)
+const disableMarkAll = computed(
+  () => markingAll.value || unreadCount.value === 0 || state.value !== 'ready',
+)
+
+let loadToken = 0
 
 async function refreshUnread(): Promise<void> {
   try {
@@ -63,17 +67,24 @@ async function load(reset: boolean): Promise<void> {
   }
   const nextPage = reset ? 1 : page.value + 1
   loadingMore.value = !reset
+  const token = ++loadToken
   try {
     const data = await fetchNotifications({
       unread: unreadOnly.value,
       page: nextPage,
       pageSize: 20,
     })
+    if (token !== loadToken) {
+      return
+    }
     items.value = reset ? data.results : [...items.value, ...data.results]
     page.value = nextPage
     total.value = data.count
     state.value = 'ready'
   } catch (caught) {
+    if (token !== loadToken) {
+      return
+    }
     if (reset) {
       error.value = notificationErrorMessage(caught)
       state.value = 'error'
@@ -143,6 +154,30 @@ async function openNotification(notification: AppNotification): Promise<void> {
   }
   if (target) {
     void router.push(target)
+  }
+}
+
+async function markOne(notification: AppNotification): Promise<void> {
+  if (notification.read_at || busyId.value !== null) {
+    return
+  }
+  busyId.value = notification.id
+  notice.value = ''
+  try {
+    const updated = await markNotificationRead(notification.id)
+    items.value = items.value.map((item) => (item.id === updated.id ? updated : item))
+    unreadCount.value = Math.max(0, unreadCount.value - 1)
+    if (unreadOnly.value) {
+      items.value = items.value.filter((item) => item.id !== updated.id)
+      total.value = Math.max(0, total.value - 1)
+    }
+    notifyNotificationsChanged()
+    notice.value = '已标记为已读。'
+    await auth.fetchMe().catch(() => undefined)
+  } catch (caught) {
+    notice.value = notificationErrorMessage(caught, '没有标记成功，请稍后再试。')
+  } finally {
+    busyId.value = null
   }
 }
 
@@ -244,16 +279,34 @@ onBeforeUnmount(() => {
           : '组寝请求、联系方式和寝室的动静会出现在这里。' }}
       </p>
       <RouterLink class="btn btn-small btn-ghost" to="/match">去匹配页看看</RouterLink>
+      <button
+        v-if="unreadOnly"
+        type="button"
+        class="btn btn-small btn-ghost"
+        @click="setFilter('all')"
+      >
+        查看全部通知
+      </button>
     </div>
 
-    <div v-else class="notification-list">
-      <NotificationRow
-        v-for="notification in items"
-        :key="notification.id"
-        :notification="notification"
-        :busy="busyId === notification.id"
-        @open="openNotification"
-      />
+    <div v-else class="notification-list" :aria-busy="markingAll">
+      <div v-for="notification in items" :key="notification.id" class="notification-item">
+        <NotificationRow
+          :notification="notification"
+          :busy="busyId === notification.id"
+          @open="openNotification"
+        />
+        <button
+          v-if="!notification.read_at"
+          type="button"
+          class="notification-mark"
+          :disabled="busyId !== null"
+          :aria-label="`将「${notification.title}」标为已读`"
+          @click="markOne(notification)"
+        >
+          {{ busyId === notification.id ? '标记中…' : '标为已读' }}
+        </button>
+      </div>
       <button
         v-if="hasMore"
         type="button"
@@ -345,6 +398,42 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
+.notification-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line);
+}
+
+.notification-item:last-of-type {
+  border-bottom: 0;
+}
+
+.notification-item :deep(.notification-row) {
+  border-bottom: 0;
+}
+
+.notification-mark {
+  border: 0;
+  border-left: 1px solid var(--line);
+  padding: 0 14px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.notification-mark:hover {
+  background: color-mix(in srgb, var(--sand) 48%, transparent);
+  color: var(--ink);
+}
+
+.notification-mark:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
 .notification-empty .fine {
   margin: 0;
   text-align: center;
@@ -370,6 +459,16 @@ onBeforeUnmount(() => {
 
   .notifications-head .btn {
     width: 100%;
+  }
+
+  .notification-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .notification-mark {
+    min-height: 44px;
+    border-top: 1px dashed var(--line);
+    border-left: 0;
   }
 }
 </style>

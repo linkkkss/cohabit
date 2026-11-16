@@ -29,6 +29,7 @@ const total = ref(0)
 const nextPage = ref<number | null>(null)
 const loadingMore = ref(false)
 const loadMoreError = ref('')
+const securityNotice = ref('')
 const myTags = ref<string[]>([])
 
 const filters = reactive({ major: '', minScore: 0 })
@@ -122,6 +123,12 @@ function reload(): void {
   void load(true)
 }
 
+/** 在匹配详情里拉黑后：刷新候选并给出列表页提示（详情弹层已关闭）。 */
+function onBlocked(): void {
+  securityNotice.value = '已拉黑。进行中的请求已关闭，对方不会再出现在你的候选里。'
+  reload()
+}
+
 onMounted(() => {
   void loadMyTags()
   void load(true)
@@ -177,6 +184,7 @@ if (typeof initialMajor === 'string' && initialMajor.trim()) {
       </form>
     </div>
 
+    <NoticeBar v-if="securityNotice" tone="info">{{ securityNotice }}</NoticeBar>
     <NoticeBar v-if="loadMoreError" tone="error">{{ loadMoreError }}</NoticeBar>
 
     <StateBlock v-if="status === 'loading'" status="loading" :rows="3" />
@@ -228,6 +236,7 @@ if (typeof initialMajor === 'string' && initialMajor.trim()) {
       :match="selected"
       :open="dialogOpen"
       @update:open="dialogOpen = $event"
+      @blocked="onBlocked"
     />
   </section>
 </template>

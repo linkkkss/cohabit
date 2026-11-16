@@ -43,6 +43,7 @@ from .exceptions import (
     RoomLocked,
     RoomNotFound,
     RoomCodeGenerationFailed,
+    RoomRateLimited,
     TargetInRoom,
 )
 from .locking import (
@@ -70,6 +71,9 @@ CAPACITY_CHOICES = (2, 4, 6)
 ROOM_CODE_LENGTH = 9
 ROOM_CODE_MAX_ATTEMPTS = 5
 TRANSFER_TTL = timedelta(hours=24)
+
+# docs/04 §1.9：每用户每日最多创建 5 间寝室（只统计成功落库的 Room）。
+DAILY_ROOM_LIMIT = 5
 
 # 非终态（docs/02 §2.2）：只有这些状态允许读写寝室。
 OPEN_ROOM_STATUSES = (
@@ -113,6 +117,18 @@ def normalize_capacity(value: Any) -> int:
     if capacity not in CAPACITY_CHOICES:
         raise CapacityInvalid(capacity)
     return capacity
+
+
+def _day_start(now: datetime) -> datetime:
+    """按项目时区取当天 00:00，与 connections/adminops 日限流口径一致。"""
+    local = timezone.localtime(now)
+    return local.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _seconds_until_next_day(now: datetime) -> int:
+    """``Retry-After``：距次日 00:00 的整秒数（至少 1）。"""
+    tomorrow = _day_start(now) + timedelta(days=1)
+    return max(1, int((tomorrow - now).total_seconds()))
 
 
 def active_membership(user: User) -> RoomMember | None:
@@ -299,6 +315,20 @@ def create_room_for_pair(
             raise ActionForbidden("性别不一致，无法组寝")
         if initiator_row.college != target_row.college:
             raise ActionForbidden("学院不一致，无法组寝")
+
+        # docs/04 §1.9：房主（initiator）每日最多创建 5 间寝室。
+        # 已持有 initiator 的用户行锁，同一 initiator 的并发 confirm 会在此串行，
+        # 因此计数不会被并发事务穿透（锁顺序仍为 窗口→用户→请求→Room→...）。
+        created_today = Room.objects.filter(
+            owner=initiator_row,
+            created_at__gte=_day_start(now),
+        ).count()
+        if created_today >= DAILY_ROOM_LIMIT:
+            raise RoomRateLimited(
+                DAILY_ROOM_LIMIT,
+                retry_after=_seconds_until_next_day(now),
+            )
+
         if active_membership(initiator_row) is not None:
             raise AlreadyInRoom(initiator_row.uid)
         if active_membership(target_row) is not None:
@@ -1004,8 +1034,17 @@ def archive_room(
 
 
 def repair_member_count(room_id: Any = None) -> dict[str, int]:
-    """按 ACTIVE 成员行修复 ``Room.member_count``（对账/回归工具）。"""
-    rooms = Room.objects.all() if room_id is None else Room.objects.filter(pk=room_id)
+    """按 ACTIVE 成员行修复 ``Room.member_count``（对账/回归工具）。
+
+    只核对非终态房间（RECRUITING/FULL/LOCKED）：ARCHIVED 的
+    ``member_count`` 是归档快照（docs/02 §5），DISSOLVED 的成员已全部
+    转 LEFT，二者都不能按 ACTIVE 行重算。
+    """
+    rooms = Room.objects.filter(
+        status__in=(Room.Status.RECRUITING, Room.Status.FULL, Room.Status.LOCKED)
+    )
+    if room_id is not None:
+        rooms = rooms.filter(pk=room_id)
     checked = 0
     repaired = 0
     with transaction.atomic():

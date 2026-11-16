@@ -18,6 +18,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.exceptions import accounts_exception_handler
+from apps.accounts.permissions import IsStudentOrReadOnly
 from apps.rooms.serializers import room_summary
 from config.api import StandardPagination
 
@@ -36,7 +37,7 @@ _REQUEST_ID_MAX_LENGTH = 64
 class ConnectionAPIView(APIView):
     """connections 视图基类：统一鉴权与错误信封。"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStudentOrReadOnly]
 
     def get_exception_handler(self) -> Any:
         return accounts_exception_handler

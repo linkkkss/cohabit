@@ -11,6 +11,7 @@ import AvatarBadge from '@/components/common/AvatarBadge.vue'
 import NoticeBar from '@/components/common/NoticeBar.vue'
 import TagChips from '@/components/common/TagChips.vue'
 import DimCompare from '@/components/match/DimCompare.vue'
+import SecurityActions from '@/components/security/SecurityActions.vue'
 
 /**
  * 匹配详情（docs/05 §7.2、docs/07 2:50–3:20）：用原生 `<dialog>`，Esc 关闭、
@@ -26,6 +27,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (event: 'update:open', value: boolean): void
+  (event: 'blocked', uid: string): void
 }>()
 
 const dialogRef = ref<HTMLDialogElement | null>(null)
@@ -46,6 +48,23 @@ const sentTo = ref('')
 
 const submitting = computed(() => inviteStatus.value === 'submitting')
 const messageOverSendLimit = computed(() => message.value.length > MESSAGE_SEND_LIMIT)
+
+/** 举报/拉黑后的就地反馈；拉黑后关闭弹层，由列表重新加载。 */
+const reportNotice = ref('')
+const targetUidNumber = computed(() => {
+  const uid = props.match?.target.uid ?? ''
+  const value = Number(uid)
+  return Number.isInteger(value) && value > 0 ? value : 0
+})
+
+function onReported(): void {
+  reportNotice.value = '举报已提交，管理员会核实。对方不会收到你举报的通知。'
+}
+
+function onBlocked(uid: string): void {
+  emit('blocked', uid)
+  closeDialog()
+}
 
 const meta = computed(() => {
   const target = props.match?.target
@@ -103,6 +122,7 @@ function resetInvite(): void {
   inviteStatus.value = 'idle'
   inviteError.value = ''
   sentTo.value = ''
+  reportNotice.value = ''
 }
 
 async function submitInvite(): Promise<void> {
@@ -199,6 +219,21 @@ onMounted(() => {
 
       <p v-if="match.target.headline" class="headline">{{ match.target.headline }}</p>
       <TagChips :tags="match.target.tags" empty-text="对方还没有选标签。" />
+
+      <NoticeBar v-if="reportNotice" tone="info">
+        {{ reportNotice }}
+      </NoticeBar>
+
+      <div class="dialog-security">
+        <SecurityActions
+          target-type="USER"
+          :target-id="targetUidNumber"
+          :target-name="match.target.nickname"
+          :block-uid="match.target.uid"
+          @reported="onReported"
+          @blocked="onBlocked"
+        />
+      </div>
 
       <section class="dialog-section">
         <h3>为什么可能合拍</h3>
@@ -389,6 +424,11 @@ onMounted(() => {
   font-family: var(--font-serif);
   font-size: 20px;
   line-height: 1.6;
+}
+
+.dialog-security {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .dialog-section {

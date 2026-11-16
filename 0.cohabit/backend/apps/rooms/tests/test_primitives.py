@@ -486,6 +486,21 @@ def test_repair_member_count_fixes_drift(owner, peer):
     assert result["repaired"] == 1
 
 
+def test_repair_member_count_skips_archived_snapshot(owner, peer):
+    room = make_room(owner, members=(peer,))
+    services.archive_room(room.pk)
+    room.refresh_from_db()
+    snapshot = room.member_count
+
+    result = services.repair_member_count(room.pk)
+
+    room.refresh_from_db()
+    assert room.status == Room.Status.ARCHIVED
+    assert room.member_count == snapshot
+    assert result["checked"] == 0
+    assert result["repaired"] == 0
+
+
 def test_archive_room_archives_members(owner, peer):
     room = make_room(owner, members=(peer,))
     window_end = timezone.now()

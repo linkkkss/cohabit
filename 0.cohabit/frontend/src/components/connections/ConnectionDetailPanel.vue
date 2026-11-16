@@ -20,6 +20,7 @@ import { formatDateTime, roomDetailPath } from '@/components/rooms/roomFormat'
 import ConnectionActions from './ConnectionActions.vue'
 import ContactPanel from './ContactPanel.vue'
 import DeadlineText from './DeadlineText.vue'
+import SecurityActions from '@/components/security/SecurityActions.vue'
 import {
   CONNECTION_PHASES,
   closeReasonText,
@@ -271,6 +272,18 @@ async function runAction(kind: ActionKind): Promise<void> {
   }
 }
 
+/** 举报/拉黑：拉黑会关闭进行中的请求，静默重拉让页面回到真实状态。 */
+function onReported(): void {
+  actionError.value = ''
+  actionInfo.value = '举报已提交，管理员会核实。对方不会收到你举报的通知。'
+}
+
+async function onBlocked(_uid: string): Promise<void> {
+  actionError.value = ''
+  actionInfo.value = '已拉黑。对方不能再邀请你，进行中的请求已关闭。'
+  await load(true)
+}
+
 function onAction(kind: ActionKind): void {
   actionError.value = ''
   if (kind === 'accept') {
@@ -368,6 +381,17 @@ onBeforeUnmount(() => {
                 <h2 class="person-name">{{ otherName }}</h2>
                 <p v-if="otherMeta" class="fine">{{ otherMeta }}</p>
               </div>
+            </div>
+
+            <div class="person-security">
+              <SecurityActions
+                target-type="CONNECTION"
+                :target-id="connection.id"
+                :target-name="otherName"
+                :block-uid="other?.uid ?? ''"
+                @reported="onReported"
+                @blocked="onBlocked"
+              />
             </div>
 
             <div v-if="connection.message" class="message-block">
@@ -824,5 +848,9 @@ onBeforeUnmount(() => {
     z-index: 5;
     box-shadow: 0 -12px 30px color-mix(in srgb, var(--ink) 8%, transparent);
   }
+}
+
+.person-security {
+  margin-top: 10px;
 }
 </style>

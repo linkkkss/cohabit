@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import AvatarBadge from '@/components/common/AvatarBadge.vue'
+import SecurityActions from '@/components/security/SecurityActions.vue'
 import { formatDate } from '@/components/rooms/roomFormat'
 import type { RoomMember } from '@/api/rooms'
 
 /**
  * 成员列表（docs/05 §4.4 `.member-row`）：头像 / 昵称 / 角色 / 加入时间。
  * 房主可以移除成员；房主本人不可被移除，也不能移除自己。
+ * 除自己外的成员都带举报/拉黑入口：拉黑只关闭进行中的请求，不会解散已成立的寝室。
  */
 const props = withDefaults(
   defineProps<{
@@ -19,6 +21,8 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (event: 'remove', payload: { uid: string; nickname: string }): void
+  (event: 'reported'): void
+  (event: 'blocked', uid: string): void
 }>()
 
 function removable(member: RoomMember): boolean {
@@ -28,6 +32,11 @@ function removable(member: RoomMember): boolean {
     member.uid !== props.currentUid &&
     member.status === 'ACTIVE'
   )
+}
+
+function uidNumber(uid: string): number {
+  const value = Number(uid)
+  return Number.isInteger(value) && value > 0 ? value : 0
 }
 </script>
 
@@ -51,6 +60,16 @@ function removable(member: RoomMember): boolean {
       >
         {{ busyUid === member.uid ? '移除中…' : '移除' }}
       </button>
+      <div v-if="member.uid !== currentUid" class="member-security">
+        <SecurityActions
+          target-type="USER"
+          :target-id="uidNumber(member.uid)"
+          :target-name="member.nickname"
+          :block-uid="member.uid"
+          @reported="emit('reported')"
+          @blocked="emit('blocked', $event)"
+        />
+      </div>
     </li>
   </ul>
   <p v-else class="fine">这间寝室还没有成员。</p>
@@ -67,6 +86,7 @@ function removable(member: RoomMember): boolean {
 
 .member-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   border-top: 1px solid var(--line);
@@ -102,9 +122,18 @@ function removable(member: RoomMember): boolean {
   flex: 0 0 auto;
 }
 
+.member-security {
+  flex: 1 0 100%;
+  padding-left: 44px;
+}
+
 @media (max-width: 640px) {
   .member-remove {
     min-height: 44px;
+  }
+
+  .member-security {
+    padding-left: 0;
   }
 }
 </style>

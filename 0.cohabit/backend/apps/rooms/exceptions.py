@@ -259,3 +259,15 @@ class RoomCodeGenerationFailed(RoomError):
             "寝室号生成失败，请重试",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
+class RoomRateLimited(RoomError):
+    """当日创建寝室次数超限（429 RATE_LIMITED，带 ``Retry-After``）。"""
+
+    def __init__(self, limit: int = 5, retry_after: int | None = None) -> None:
+        super().__init__(
+            "RATE_LIMITED",
+            f"今日创建寝室次数已达上限（{limit} 次）",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            retry_after=retry_after,
+        )

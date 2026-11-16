@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.exceptions import ApiError, accounts_exception_handler
+from apps.accounts.permissions import IsStudentOrReadOnly
 from apps.connections.models import OPEN_STATUSES, ConnectionRequest
 
 from . import services, transfer_services
@@ -38,7 +39,7 @@ from .utils import TAGS_MAX
 class RoomAPIView(APIView):
     """rooms 视图基类：统一鉴权与错误信封。"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStudentOrReadOnly]
 
     def get_exception_handler(self):  # noqa: ANN201 - DRF 约定
         return accounts_exception_handler

@@ -2,14 +2,50 @@
 
 from __future__ import annotations
 
+import csv
+
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
+from django.http import HttpResponse
 from django.utils import timezone
 
+from apps.core.audit import write_audit
+
+from . import lifecycle
 from .models import ContactInfo, InviteCode, User, generate_invite_code
+
+# 导出白名单：不含 email / password / 联系方式（docs/06 FA-08、S-03）。
+USER_EXPORT_COLUMNS = (
+    "uid",
+    "nickname",
+    "gender",
+    "grade",
+    "college",
+    "major",
+    "role",
+    "status",
+    "is_staff",
+    "is_active",
+    "created_at",
+)
+
+
+def _csv_response(filename: str, header: tuple[str, ...], rows) -> HttpResponse:
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response.write("\ufeff")  # Excel 中文兼容
+    writer = csv.writer(response)
+    writer.writerow(header)
+    writer.writerows(rows)
+    return response
+
+
+def _request_id(request) -> str:
+    value = request.headers.get("X-Request-Id") or request.META.get("HTTP_X_REQUEST_ID")
+    return str(value or "")[:64]
 
 
 class UserCreationForm(BaseUserCreationForm):
@@ -172,6 +208,7 @@ class UserAdmin(BaseUserAdmin):
     ordering = ("-created_at",)
     readonly_fields = ("uid", "last_login", "created_at", "updated_at")
     filter_horizontal = ("groups", "user_permissions")
+    actions = ("disable_users", "export_users_csv")
 
     fieldsets = (
         (None, {"fields": ("uid", "email", "password")}),
@@ -202,3 +239,69 @@ class UserAdmin(BaseUserAdmin):
             },
         ),
     )
+
+    @admin.action(description="禁用所选用户（级联清理在途请求/寝室）")
+    def disable_users(self, request, queryset):
+        disabled = 0
+        skipped = 0
+        for user in queryset.select_related("contact_info").order_by("pk"):
+            if user.pk == getattr(request.user, "pk", None):
+                skipped += 1
+                self.message_user(request, "不能禁用当前登录账号。", messages.ERROR)
+                continue
+            if user.status == User.Status.DISABLED and not user.is_active:
+                skipped += 1
+                continue
+            try:
+                lifecycle.disable_account(
+                    user,
+                    actor=request.user,
+                    request_id=_request_id(request),
+                )
+            except Exception as exc:  # noqa: BLE001 - 后台批量动作逐条报告失败
+                self.message_user(
+                    request,
+                    f"用户 {user.uid} 禁用失败：{exc}",
+                    messages.ERROR,
+                )
+                continue
+            disabled += 1
+        if disabled:
+            self.message_user(request, f"已禁用 {disabled} 个账号（已级联清理）。")
+        elif not skipped:
+            self.message_user(request, "没有可禁用的账号。", messages.WARNING)
+        elif skipped:
+            self.message_user(request, f"跳过 {skipped} 个账号。", messages.WARNING)
+
+    @admin.action(description="导出所选用户 CSV（不含邮箱/密码/联系方式）")
+    def export_users_csv(self, request, queryset):
+        users = queryset.order_by("pk")
+        rows = (
+            (
+                user.uid,
+                user.nickname,
+                user.get_gender_display(),
+                user.grade,
+                user.college,
+                user.major,
+                user.get_role_display(),
+                user.get_status_display(),
+                user.is_staff,
+                user.is_active,
+                user.created_at.isoformat() if user.created_at else "",
+            )
+            for user in users.iterator()
+        )
+        write_audit(
+            "AUDIT_EXPORTED",
+            "user",
+            None,
+            actor=request.user,
+            meta={
+                "model": "User",
+                "count": users.count(),
+                "columns": list(USER_EXPORT_COLUMNS),
+            },
+            request_id=_request_id(request),
+        )
+        return _csv_response("users.csv", USER_EXPORT_COLUMNS, rows)

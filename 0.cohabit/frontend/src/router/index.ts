@@ -97,6 +97,27 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '我的画像', requiresAuth: true },
   },
   {
+    // 设置（docs/05 §7）：基础资料、联系方式、拉黑列表、注销；需要登录。
+    path: '/settings',
+    name: 'settings',
+    component: () => import('@/views/settings/SettingsPage.vue'),
+    meta: { title: '设置', requiresAuth: true },
+  },
+  {
+    // 规则说明（公开静态页，未登录可读）。
+    path: '/rules',
+    name: 'rules',
+    component: () => import('@/views/content/RulesPage.vue'),
+    meta: { title: '规则说明' },
+  },
+  {
+    // 隐私说明（公开静态页，未登录可读）。
+    path: '/privacy',
+    name: 'privacy',
+    component: () => import('@/views/content/PrivacyPage.vue'),
+    meta: { title: '隐私说明' },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('@/views/NotFoundView.vue'),
@@ -104,10 +125,48 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
+/** 用户是否偏好减少动效（docs/05 §2.4）。 */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
+/** sticky 头部 + 离线横条占位，供锚点滚动让位；高度由 AppShell 实测写入。 */
+function stickyOffset(): number {
+  if (typeof window === 'undefined') return 88
+  const styles = window.getComputedStyle(document.documentElement)
+  const header = Number.parseInt(styles.getPropertyValue('--shell-header-h'), 10)
+  const notice = Number.parseInt(styles.getPropertyValue('--shell-notice-h'), 10)
+  return (Number.isFinite(header) && header > 0 ? header : 72) + (Number.isFinite(notice) ? notice : 0) + 16
+}
+
+/** 站内锚点（规则/隐私页的页内目录）跳转前先确认目标存在，避免选择器异常。 */
+function hasAnchor(hash: string): boolean {
+  if (!hash || hash === '#' || typeof document === 'undefined') return false
+  try {
+    return document.querySelector(hash) !== null
+  } catch {
+    return false
+  }
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  scrollBehavior: () => ({ top: 0 }),
+  scrollBehavior(to, _from, savedPosition) {
+    if (savedPosition) return savedPosition
+    if (to.hash && hasAnchor(to.hash)) {
+      return {
+        el: to.hash,
+        top: stickyOffset(),
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      }
+    }
+    return { top: 0 }
+  },
 })
 
 router.beforeEach(async (to) => {

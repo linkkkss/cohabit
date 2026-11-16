@@ -1,9 +1,10 @@
-from django.urls import path
+from django.urls import re_path
 
-from .views import health_check
+from .views import admin_stats, health_check
 
 app_name = "core"
 
 urlpatterns = [
-    path("health/", health_check, name="health"),
+    re_path(r"^health/?$", health_check, name="health"),
+    re_path(r"^admin/stats/?$", admin_stats, name="admin-stats"),
 ]

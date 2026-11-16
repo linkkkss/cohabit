@@ -8,6 +8,7 @@ import TagChips from '@/components/common/TagChips.vue'
 import ConfirmDialog from '@/components/rooms/ConfirmDialog.vue'
 import RoomEditForm from '@/components/rooms/RoomEditForm.vue'
 import RoomMemberList from '@/components/rooms/RoomMemberList.vue'
+import SecurityActions from '@/components/security/SecurityActions.vue'
 import RoomTransferPanel from '@/components/rooms/RoomTransferPanel.vue'
 import { copyText, formatDateTime, publicRoomPath } from '@/components/rooms/roomFormat'
 import { loadRoomTagOptions } from '@/components/rooms/tagOptions'
@@ -134,6 +135,17 @@ async function refreshRoom(): Promise<void> {
   } catch (error) {
     transferError.value = roomErrorMessage(error, '寝室状态没有刷新出来，请刷新页面。')
   }
+}
+
+function onReported(): void {
+  actionError.value = ''
+  actionInfo.value = '举报已提交，管理员会核实。对方不会收到你举报的通知。'
+}
+
+async function onMemberBlocked(_uid: string): Promise<void> {
+  actionError.value = ''
+  actionInfo.value = '已拉黑这位成员。进行中的请求已关闭，已成立的寝室不受影响。'
+  await refreshRoom()
 }
 
 async function runAction(key: string, run: (id: number) => Promise<RoomDetail>): Promise<void> {
@@ -372,6 +384,8 @@ onMounted(() => {
               :can-remove="!readOnly && !writeBlocked && room.actions.can_remove"
               :busy-uid="memberBusyUid"
               @remove="askRemove"
+              @reported="onReported"
+              @blocked="onMemberBlocked"
             />
           </section>
 
@@ -469,6 +483,15 @@ onMounted(() => {
               你还不是这间寝室的成员。想住进来，去组寝请求里发起申请。
             </p>
             <p v-else class="fine actions-hint">只读状态下不提供写动作。</p>
+
+            <div v-if="!writeBlocked" class="room-security">
+              <SecurityActions
+                target-type="ROOM"
+                :target-id="room.id ?? 0"
+                :target-name="room.title || '未命名寝室'"
+                @reported="onReported"
+              />
+            </div>
           </section>
 
           <div ref="transferAnchor">
@@ -662,6 +685,12 @@ onMounted(() => {
   margin: 0;
   color: var(--muted);
   line-height: 1.7;
+}
+
+.room-security {
+  margin-top: 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
 }
 
 .share-fallback {

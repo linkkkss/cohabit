@@ -444,11 +444,12 @@ onBeforeUnmount(() => {
 @media (max-width: 640px) {
   .bell-panel {
     position: fixed;
-    top: 64px;
+    /* 两行移动端头部高度由外壳实测写入 --shell-header-h，避免面板压住主导航。 */
+    top: calc(var(--shell-notice-h, 0px) + var(--shell-header-h, 64px) + 8px);
     right: 12px;
     left: 12px;
     width: auto;
-    max-height: calc(100vh - 80px);
+    max-height: calc(100vh - var(--shell-header-h, 64px) - 32px);
     overflow-y: auto;
   }
 

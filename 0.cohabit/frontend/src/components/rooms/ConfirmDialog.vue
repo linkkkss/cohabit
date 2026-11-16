@@ -16,6 +16,12 @@ const props = withDefaults(
     busy?: boolean
     /** 需要输入确认文本时（例如输入寝室编号）传入。 */
     confirmWord?: string
+    /**
+     * 渲染在原位而不是 Teleport 到 body。
+     * 用于本身已经处在原生 `<dialog showModal>` 里的场景：模态 dialog 之外的节点是 inert，
+     * Teleport 出去的确认弹层会点不动。
+     */
+    inline?: boolean
   }>(),
   {
     description: '',
@@ -24,6 +30,7 @@ const props = withDefaults(
     tone: 'default',
     busy: false,
     confirmWord: '',
+    inline: false,
   },
 )
 
@@ -104,7 +111,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Teleport to="body">
+  <Teleport to="body" :disabled="inline">
     <div v-if="open" class="dialog-backdrop" @click.self="!busy && emit('cancel')">
       <div
         ref="panel"
