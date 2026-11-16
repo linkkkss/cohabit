@@ -494,7 +494,7 @@ python manage.py seed_demo --force    # 仅 DEBUG=False 时需要，显式确认
 
 | # | 断言 | 期望 |
 | --- | --- | --- |
-| I-01 | `User` 学生数 / 管理员数 | 40 / 1；邮箱唯一；uid 唯一且长度 10 |
+| I-01 | `User` 学生数 / 种子管理员数 | 40 / 1；邮箱唯一；uid 唯一且长度 10；手工创建的额外 `ADMIN` 允许存在，`--reset` 不删除（P3-2） |
 | I-02 | 每用户 ACTIVE `RoomMember` 数 | ≤1；40 个学生中 12 人（#1 2 + #2 3 + #3 4 + #4 3）在非终态房间，其余 28 人无 ACTIVE 寝（含 #5 归档 6 人、#6 解散 2 人） |
 | I-03 | 非终态房间 `member_count` | 等于 ACTIVE 成员数；#1=2、#2=3、#3=4、#4=3 |
 | I-04 | `ARCHIVED` #5 | `member_count=6`；成员全 `ARCHIVED`；无 ACTIVE 成员 |
@@ -630,7 +630,16 @@ seed_demo: ok
 | 全量测试 | `pytest -q` **704 passed**（252.41s，测试库 `test_cohabit_m5_qa`） |
 | M5 数据面校验 | 归档快照 #5：`member_count=6`、6 名 ARCHIVED 成员；`repair_member_count` dry-run 不再重算终态房（drift=0，§S-15）；公开页对 ARCHIVED/DISSOLVED 均 404；CSV 导出不含 email/QQ/微信/手机号/token |
 | 与规格差异 | 仅通知 79 条（第 80 条被每人上限跳过，skip=1），无其他计数差异 |
-| 运维提示 | 若先建过额外 ADMIN 账号，`seed_demo --reset` 自检 `#I-01 admin != 1` 会失败；先 `manage.py flush --no-input` 再 reset（本轮已按此恢复基线） |
+| 运维提示 | **P3-2 已修复**：I-01 只校验种子管理员（`0000000099` / `admin@cohabit.local`）存在且唯一；手工创建的额外 ADMIN 允许存在且 `--reset` 保留，无需再先执行 `manage.py flush --no-input` |
+
+### 14.4 M6 本地冻结复核（2026-11-16）
+
+| 项 | 结果 |
+| --- | --- |
+| 命令 | 浏览器全链路彩排后执行 `seed_demo --reset`（演示库 `cohabit_dev`） |
+| 输出 | users=41 (students=40, admin=1) / profiles=40 / contact_infos=40 / rooms=6 / members=20 / requests=8 / transfers=2 / notifications=79 (read23 unread56 types12 skipped1) / windows=2 / invite_codes=1 / reports=2 / blocks=4 / audits=10 |
+| 全链路 | `.walkthrough/qa_m4_fa04.cjs` 13/13（注册→问卷→匹配→邀请→接受→两步确认→建寝 `#844756057`）；彩排后重置恢复基线 |
+| 结论 | M6 不改变 seed 结构；计数与 M5 §14.3 一致；本地冻结可直接按 §1 重置后演示 |
 
 ## 15. 变更记录
 
@@ -639,3 +648,5 @@ seed_demo: ok
 | 2026-11-15 | v1 | M1 首版：命令契约、字段清单、40 人/6 寝/8 请求矩阵、画像 cohort、通知覆盖、22 条自检断言、03 对照表 | P5 |
 | 2026-11-15 | v2 | M4 实测同步：通知 79（skip=1）、CONFIRMED `expires_at NULL`（迁移 0002）、demo041 密码建议改 `Cohabit2026!`、输出 elapsed 实测、新增 §14.2 验收记录 | P5 |
 | 2026-11-16 | v3 | M5 实测同步：隔离库 `cohabit_m5_qa` 计数不变；API 432/432、全量 704 passed；新增 §14.3（含归档快照/修复口径与额外 ADMIN 时 flush 提示） | P5 |
+| 2026-11-16 | v4 | M6 本地冻结：新增 §14.4（彩排后 reset 计数与 13/13 全链路）；seed 结构未变 | Lead |
+| 2026-11-16 | v5 | P3-2 修复：I-01 改为仅校验种子管理员存在且唯一（额外 ADMIN 允许并保留）；同步 §10 I-01、§14.3 运维提示与回归测试 | backend |

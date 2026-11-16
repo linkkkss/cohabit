@@ -142,6 +142,7 @@
 - 注册/登录、资料/问卷编辑、举报、拉黑、通知已读**不受**窗口影响。
 - Admin 运维动作不受窗口限制，但必须审计。
 - 关闭后写操作返回 `409 WINDOW_CLOSED`；读接口正常。
+- 只读状态：`GET /api/timewindow`（尾斜杠可选）返回本学院窗口阶段与倒计时（§3.13 `TimeWindowStatus`），供页面横幅与 CTA 禁用态；未登录 401，其余情况一律 `200`，不返回 409/500。
 
 ### 1.9 限频（落地值）
 
@@ -390,11 +391,17 @@
 
 `id,type,title,payload,read_at,created_at`；`payload` 只含 id/昵称/房间号/原因/人数/时间，不含联系方式。
 
-### 3.13 `Report` / `Block` / `Health`
+### 3.13 `Report` / `Block` / `Health` / `TimeWindowStatus`
 
 - `Report`: `id,target_type,target_id,reason,status,handled_by?,created_at`。
 - `Block`: `uid,nickname,avatar_key,created_at`。
 - `Health`: `{status:"ok",version:"0.1.0",db:"ok",time:"..."}`；DB 不可用 503 `{status:"degraded",db:"error"}`。
+- `TimeWindowStatus`: `college,status,is_open,start_at,end_at,days_until_start,days_until_end,server_time`。
+  - `status ∈ {OPEN,UPCOMING,CLOSED}`；`is_open = (status == "OPEN")`。
+  - `now < start_at` → `UPCOMING`：`days_until_start` 有值、`days_until_end = null`；`start_at ≤ now < end_at` → `OPEN`：`days_until_start = 0`、`days_until_end` 有值；`now ≥ end_at` → `CLOSED`：两个 days 均为 `null`。
+  - 无记录、用户无学院或已结束 → `200 CLOSED`；无记录时 `start_at/end_at/days_*` 均为 `null`，`college` 为用户学院（无学院为空串）。
+  - 时间字段按服务器本地时区（`TIME_ZONE`，默认 `Asia/Shanghai`）输出带偏移量的 ISO 8601（如 `2026-11-17T00:00:00+08:00`）；这是 §1.1 UTC 约定的显式例外，便于前端直接展示倒计时与横幅。
+  - `days_until_*` 为剩余时间向上取整到天：整 7 天 → 7，多 1 秒 → 8。
 
 ## 4. 端点
 
@@ -688,6 +695,7 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
 | 方法/路径 | 权限 | 说明 |
 | --- | --- | --- |
 | `GET /api/health` | 无 | DB/版本；DB 故障 503 |
+| `GET /api/timewindow` | 登录 | 本学院时间窗阶段（§3.13 `TimeWindowStatus`）：OPEN/UPCOMING/CLOSED + 倒计时；无记录/无学院=CLOSED；只读，不返回 409；尾斜杠可选 |
 | `GET /api/admin/stats` | staff | 可选看板：用户/寝室/请求/举报计数 |
 
 ## 5. 动作矩阵
@@ -917,3 +925,4 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
 | v1.3-draft | 2026-11-15 | 实现澄清：连接详情未解锁 `contact={}`（非 `null`）；同步 §3.10/§10 A-03、06 A-03、OpenAPI `ContactInfo.unlocked` |
 | v1.4-draft | 2026-11-15 | 终态寝室只读详情：`members` 返回全部历史成员（最终名单）；非终态仍仅 ACTIVE |
 | v1.5-draft | 2026-11-15 | `ConnectionRequest.expires_at` 可空；`CONFIRMED` 为 `null`，同步 03 §1.6/OpenAPI |
+| v1.6-draft | 2026-11-16 | M6 修复（P2-1/WK-03）：新增只读 `GET /api/timewindow`（`TimeWindowStatus`，本地时区显式例外），同步 §1.8/§3.13/§4.7 与 OpenAPI |
