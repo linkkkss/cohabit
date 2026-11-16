@@ -1,6 +1,6 @@
 # seed 数据规格（seed_demo）
 
-> 状态：M1 交付物（2026-11-15）｜作者：P5（product-qa）｜写权限：本文件
+> 状态：M4 交付物（2026-11-15，v2）｜作者：P5（product-qa）｜写权限：本文件
 > 用途：给 P1 实现 `python manage.py seed_demo` 的**字段级规格**，并作为 QA 验收种子数据的依据。
 > 上游契约：[03 数据字典与问卷](03-数据字典与问卷.md) §11（40 人 / 6 寝 / 8 请求）、§1（字段与约束）、§2（画像 JSON）、§3–§7（题库）、§9（通知）；[02 组寝状态机](02-组寝状态机.md) §4（寝室不变量）、§3（请求）；[04 API 契约](04-API契约.md) §3（Schema）、§1.7（隐私）。
 > 本文件**不含代码**；P1 按此实现，P5 用本文 §10 自检。
@@ -382,7 +382,7 @@ python manage.py seed_demo --force    # 仅 DEBUG=False 时需要，显式确认
 | `MEMBER_JOINED` | #2 加入 12、13 | 既有成员（11；11+12） | 3 |
 | `WINDOW_CLOSING` | 时间窗 7 天提醒（days=7） | 每院全体 | 40 |
 
-合计约 80 条；每用户 0–5 条（WINDOW_CLOSING 占 1 条，其余按事件最多 4 条）。若某用户将超过 5 条，按 §7.3 跳过并计入 `skipped_notifications`。
+合计约 80 条；每用户 0–5 条（WINDOW_CLOSING 占 1 条，其余按事件最多 4 条）。若某用户将超过 5 条，按 §7.3 跳过并计入 `skipped_notifications`。当前 seed 实际 79 条：小外11 的第 6 条 `WINDOW_CLOSING` 被上限跳过，`skipped=1`，12 类覆盖不受影响。
 
 ### 7.2 已读/未读混合
 
@@ -523,7 +523,7 @@ python manage.py seed_demo --force    # 仅 DEBUG=False 时需要，显式确认
 
 | 账号 | 密码 | 用途 | 关键前提 |
 | --- | --- | --- | --- |
-| `demo041@stu.edu.cn` | `Demo1234!`（现场注册自定） | 演示注册/问卷/匹配 | 不写入 seed；彩排残留需删除或换 042 |
+| `demo041@stu.edu.cn` | `Cohabit2026!`（现场注册自定） | 演示注册/问卷/匹配 | 不写入 seed；彩排残留需删除或换 042。注意 Django 密码相似校验：`Demo1234!` 对新邮箱 `demo041.*` 可能被判“与邮箱相似”，现场用 `Cohabit2026!` |
 | `demo009@stu.edu.cn`（小算09） | `Demo1234!` | 被邀请对象 / 演示匹配最高分 | 画像 100、无寝、`qq=123456789`、`show_qq=True` |
 | `demo010@stu.edu.cn`（小算10） | `Demo1234!` | 红线冲突候选 | 画像 100、无寝、`smoke=yes` |
 | `demo001@stu.edu.cn`（小算01） | `Demo1234!` | 房主对照 / 广场寝室 #1 | #1 房主、`RECRUITING 2/4` |
@@ -544,12 +544,12 @@ seed_demo: ok
   room_members=20 (ACTIVE=12 ARCHIVED=6 LEFT=2)
   requests=8 (PENDING=2 CONTACT_SHARED=2 CONFIRMING=2 CONFIRMED=2)
   transfers=2 (PENDING=1 EXPIRED=1)
-  notifications=80 (read=23 unread=57; types=12; skipped=0)
+  notifications=79 (read=23 unread=56; types=12; skipped=1)
   windows=2 invite_codes=1 reports=2 blocks=4 audits=10
-  elapsed=0.8s
+  elapsed=7.2s
 ```
 
-> 数字可有 ±2 偏差（通知跳过/审计抽样），但 `users/rooms/requests/transfers/windows/reports/blocks` 必须与上表一致；QA 以 §10 断言为准。
+> 数字可有 ±2 偏差（通知跳过/审计抽样），但 `users/rooms/requests/transfers/windows/reports/blocks` 必须与上表一致；QA 以 §10 断言为准。`elapsed` 随机器/数据库状态变化，2026-11-15 本机实测 7.2–7.3s（隔离库）与 10.1s（首次迁移后冷库）。
 
 ### 12.2 `--reset` 幂等
 
@@ -606,9 +606,36 @@ seed_demo: ok
 2. **拉黑“2 对”的口径**：03 未说明按行还是按对；本规格按 2 对互拉黑（4 行）实现并计数。
 3. **通知类型数**：03 要求 10+；本规格覆盖 11 类事件型 + 1 类窗口提醒（`WINDOW_CLOSING` 由 seed 直接写入，需与 cron 去重键 `(college, days)` 对齐；若 P2 认为应由 cron 生成，可删除这 40 条并将覆盖类型降为 11）。
 4. **03 §9 跳转路径** `/app/connections/{id}`、`/app/rooms/{code}` 与前端实际路由 `/connections`、`/rooms/:code` 不一致；通知 payload 不依赖该路径，前端跳转按实际路由映射（见 06 的说明）。
+5. **`expires_at` 可空**：M4 修复后 `ConnectionRequest.expires_at` 允许 `NULL`（迁移 `connections/0002_expires_at_nullable`），仅 `CONFIRMED` 为 `NULL`；PENDING/CONTACT_SHARED/CONFIRMING 必须有值。seed 的 2 条 CONFIRMED 已按此落库，历史 CONFIRMED 数据由迁移清空。
+
+### 14.2 M4 实测记录（2026-11-15）
+
+| 项 | 结果 |
+| --- | --- |
+| 命令 | `manage.py seed_demo --reset`（开发库）；`migrate` + `seed_demo`（隔离库 `cohabit_m4_qa`） |
+| 输出 | users=41 / profiles=40 / contacts=40 / rooms=6 / members=20 / requests=8 / transfers=2 / notifications=79（read23 unread56 types12 skipped1）/ windows=2 / invite=1 / reports=2 / blocks=4 / audits=10 |
+| 自检 | §10 I-01..I-22 全通过；CONFIRMED 两行 `expires_at IS NULL` 且 `room_id` 非空；其余状态 `expires_at` 非空 |
+| 隔离库 API 验收 | `.walkthrough/qa_m4_api.py` 171 passed / 0 failed / 0 defects（fresh seed 后） |
+| 全量测试 | `pytest -q` 544 passed（隔离测试库 `test_cohabit_qa_m4`） |
+| 与规格差异 | 仅通知 79 条（第 80 条被每人上限跳过，skip=1），无其他计数差异；`elapsed` 随环境变化 |
+
+### 14.3 M5 实测记录（2026-11-16）
+
+| 项 | 结果 |
+| --- | --- |
+| 命令 | `migrate` + `seed_demo --reset`（隔离库 `cohabit_m5_qa`，9.1s）；测试库 `test_cohabit_m5_qa` |
+| 输出 | users=41 (students=40, admin=1) / profiles=40 (100%) / contact_infos=40 (with_qq=4) / rooms=6 (RECRUITING=2 FULL=1 LOCKED=1 ARCHIVED=1 DISSOLVED=1) / room_members=20 (ACTIVE=12 ARCHIVED=6 LEFT=2) / requests=8 (2/2/2/2) / transfers=2 (PENDING=1 EXPIRED=1) / notifications=79 (read23 unread56 types12 skipped1) / windows=2 / invite_codes=1 / reports=2 / blocks=4 / audits=10 |
+| 自检 | §10 I-01..I-22 全通过；与 M4 实测计数逐项一致 |
+| 隔离库 API 验收 | `.walkthrough/qa_m5_api.py` **432 checks / 432 passed / 0 failed / 0 defects**（fresh seed；含 W-01..10、R-15..21、T-08、S-06..15、A-11/A-13、FA-08、隐私扫描） |
+| 全量测试 | `pytest -q` **704 passed**（252.41s，测试库 `test_cohabit_m5_qa`） |
+| M5 数据面校验 | 归档快照 #5：`member_count=6`、6 名 ARCHIVED 成员；`repair_member_count` dry-run 不再重算终态房（drift=0，§S-15）；公开页对 ARCHIVED/DISSOLVED 均 404；CSV 导出不含 email/QQ/微信/手机号/token |
+| 与规格差异 | 仅通知 79 条（第 80 条被每人上限跳过，skip=1），无其他计数差异 |
+| 运维提示 | 若先建过额外 ADMIN 账号，`seed_demo --reset` 自检 `#I-01 admin != 1` 会失败；先 `manage.py flush --no-input` 再 reset（本轮已按此恢复基线） |
 
 ## 15. 变更记录
 
 | 日期 | 版本 | 变更 | 作者 |
 | --- | --- | --- | --- |
 | 2026-11-15 | v1 | M1 首版：命令契约、字段清单、40 人/6 寝/8 请求矩阵、画像 cohort、通知覆盖、22 条自检断言、03 对照表 | P5 |
+| 2026-11-15 | v2 | M4 实测同步：通知 79（skip=1）、CONFIRMED `expires_at NULL`（迁移 0002）、demo041 密码建议改 `Cohabit2026!`、输出 elapsed 实测、新增 §14.2 验收记录 | P5 |
+| 2026-11-16 | v3 | M5 实测同步：隔离库 `cohabit_m5_qa` 计数不变；API 432/432、全量 704 passed；新增 §14.3（含归档快照/修复口径与额外 ADMIN 时 flush 提示） | P5 |
