@@ -208,6 +208,8 @@ erDiagram
 ```
 
 > `College` 不是数据库表，只是为了说明 `TimeWindow.college` 与 `User.college` 的取值域一致；v1 学院是字符串，不做外键，避免学院字典未冻结时阻塞注册。
+>
+> 2026-11-18 已用 Mermaid CLI 12.2.0 将上述 `erDiagram` 渲染为临时 SVG/PNG 验证通过（未将渲染产物入库）；`College` 在图中仅作值域参考，不对应数据库迁移。
 
 ---
 

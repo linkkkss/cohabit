@@ -267,7 +267,7 @@ def test_mine_exposes_pending_transfer(room, owner, member):
 
 
 # --------------------------------------------------------------------------- #
-# GET /api/rooms/:code|:id
+# GET /api/rooms/:code
 # --------------------------------------------------------------------------- #
 def test_detail_by_code(room, member):
     response = auth_client(member).get(f"/api/rooms/{room.code}")
@@ -278,11 +278,11 @@ def test_detail_by_code(room, member):
     assert payload["my_role"] == RoomMember.Role.MEMBER
 
 
-def test_detail_by_id(room, member):
+def test_get_detail_by_id_is_not_allowed(room, member):
     response = auth_client(member).get(f"/api/rooms/{room.pk}")
 
-    assert response.status_code == 200
-    assert body(response)["code"] == room.code
+    assert response.status_code == 404
+    assert error_code(response) == "ROOM_NOT_FOUND"
 
 
 def test_room_payloads_expose_internal_primary_key(room, owner, member, stranger):
@@ -290,13 +290,13 @@ def test_room_payloads_expose_internal_primary_key(room, owner, member, stranger
     square = body(auth_client(stranger).get("/api/rooms"))
     mine = body(auth_client(member).get("/api/rooms/mine"))
     detail_by_code = body(auth_client(member).get(f"/api/rooms/{room.code}"))
-    detail_by_id = body(auth_client(member).get(f"/api/rooms/{room.pk}"))
+    detail_by_id = auth_client(member).get(f"/api/rooms/{room.pk}")
     public = body(APIClient().get(f"/api/public/rooms/{room.code}"))
 
     assert square["results"][0]["id"] == room.pk
     assert mine["room"]["id"] == room.pk
     assert detail_by_code["id"] == room.pk
-    assert detail_by_id["id"] == room.pk
+    assert detail_by_id.status_code == 404
     assert public["id"] == room.pk
 
 
@@ -313,7 +313,7 @@ def test_detail_hidden_from_other_college(room, stranger):
     room.college = "外国语学院"
     room.save(update_fields=["college"])
 
-    response = auth_client(stranger).get(f"/api/rooms/{room.pk}")
+    response = auth_client(stranger).get(f"/api/rooms/{room.code}")
 
     assert response.status_code == 404
     assert error_code(response) == "ROOM_NOT_FOUND"
@@ -323,7 +323,7 @@ def test_detail_hidden_from_other_gender(room, stranger):
     room.gender = "FEMALE"
     room.save(update_fields=["gender"])
 
-    response = auth_client(stranger).get(f"/api/rooms/{room.pk}")
+    response = auth_client(stranger).get(f"/api/rooms/{room.code}")
 
     assert response.status_code == 404
 
@@ -342,14 +342,14 @@ def test_detail_members_only_include_active(room, owner, member):
     add_member(room, left, status=RoomMember.Status.LEFT)
     add_member(room, removed, status=RoomMember.Status.REMOVED)
 
-    payload = body(auth_client(owner).get(f"/api/rooms/{room.pk}"))
+    payload = body(auth_client(owner).get(f"/api/rooms/{room.code}"))
 
     uids = [row["uid"] for row in payload["members"]]
     assert member.uid in uids and owner.uid in uids
     assert left.uid not in uids
     assert removed.uid not in uids
     assert payload["actions"]["can_transfer"] is True
-    assert body(auth_client(member).get(f"/api/rooms/{room.pk}"))["actions"][
+    assert body(auth_client(member).get(f"/api/rooms/{room.code}"))["actions"][
         "can_leave"
     ] is True
 
@@ -381,8 +381,8 @@ def test_terminal_room_detail_read_only_for_former_member(room, owner, member, t
     assert payload["status"] == terminal
     assert payload["my_role"] == RoomMember.Role.MEMBER
     assert all(value is False for value in payload["actions"].values())
-    assert by_id.status_code == 200
-    assert body(by_id)["id"] == room.pk
+    assert by_id.status_code == 404
+    assert error_code(by_id) == "ROOM_NOT_FOUND"
 
 
 def test_terminal_room_detail_hidden_from_non_member(room, stranger):
@@ -431,7 +431,7 @@ def test_terminal_archived_room_detail_lists_full_member_roster(room, owner, mem
 def test_terminal_dissolved_room_detail_lists_full_member_roster(room, owner, member):
     services.dissolve_room(owner, room.pk)
 
-    payload = body(auth_client(member).get(f"/api/rooms/{room.pk}"))
+    payload = body(auth_client(member).get(f"/api/rooms/{room.code}"))
 
     assert {row["uid"] for row in payload["members"]} == {owner.uid, member.uid}
     assert {row["status"] for row in payload["members"]} == {RoomMember.Status.LEFT}

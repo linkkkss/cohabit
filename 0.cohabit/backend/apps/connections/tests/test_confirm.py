@@ -455,7 +455,7 @@ def _assert_room_snapshot(payload, viewer, *, member_count, status) -> None:
     assert room.member_count == member_count
     assert room.status == status
 
-    detail = auth_client(viewer).get(f"/api/rooms/{room.pk}")
+    detail = auth_client(viewer).get(f"/api/rooms/{room.code}")
     assert detail.status_code == 200
     detail_payload = body(detail)
     assert detail_payload["member_count"] == member_count

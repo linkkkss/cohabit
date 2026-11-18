@@ -135,7 +135,7 @@ def test_admin_room_reads_and_public_page_still_work():
     square = admin_client.get("/api/rooms")
     assert square.status_code == 200
 
-    detail = admin_client.get(f"/api/rooms/{room.pk}")
+    detail = admin_client.get(f"/api/rooms/{room.code}")
     assert detail.status_code == 200
     assert body(detail)["id"] == room.pk
 

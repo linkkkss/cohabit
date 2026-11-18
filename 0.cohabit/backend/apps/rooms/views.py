@@ -187,13 +187,18 @@ class RoomMineView(RoomAPIView):
 
 
 class RoomDetailView(RoomAPIView):
-    """GET /api/rooms/:code|:id 与 PATCH /api/rooms/:id。"""
+    """GET /api/rooms/:code 与 PATCH /api/rooms/:id。
+
+    ``GET`` 只接受 9 位 code；内部主键路由只用于 PATCH，避免与
+    ``docs/04-API契约.md`` §4.3 的 ``str:code`` / ``int:id`` 约束不一致。
+    """
 
     def get(self, request, code: Any = None, room_id: Any = None):  # noqa: ANN201
+        if code is None:
+            raise RoomNotFound()
         room, membership = services.get_room_for_viewer(
             request.user,
             code=code,
-            room_id=room_id,
         )
         transfer = transfer_services.pending_transfer_for(room)
         return Response(

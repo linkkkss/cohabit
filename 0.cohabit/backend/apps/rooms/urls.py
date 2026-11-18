@@ -16,7 +16,7 @@ urlpatterns = [
     # 广场 / 我的寝室
     re_path(r"^rooms/?$", views.RoomSquareView.as_view(), name="square"),
     re_path(r"^rooms/mine/?$", views.RoomMineView.as_view(), name="mine"),
-    # 详情：9 位 code 只读，数字 id 支持 GET/PATCH
+    # 详情：9 位 code 只读；数字 id 只用于 PATCH 与生命周期动作
     re_path(
         r"^rooms/(?P<code>\d{9})/?$",
         views.RoomDetailView.as_view(),

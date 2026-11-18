@@ -341,7 +341,7 @@ def test_expire_due_transfers_skips_future(room, owner, member):
 def test_room_detail_shows_transfer_to_outsider_without_contact(room, owner, member, outsider):
     _make_transfer(room, owner, member)
 
-    response = auth_client(outsider).get(f"/api/rooms/{room.pk}")
+    response = auth_client(outsider).get(f"/api/rooms/{room.code}")
 
     assert response.status_code == 200
     assert "contact" not in str(body(response))
@@ -350,7 +350,7 @@ def test_room_detail_shows_transfer_to_outsider_without_contact(room, owner, mem
 def test_room_detail_shows_transfer_to_member(room, owner, member):
     transfer = _make_transfer(room, owner, member)
 
-    payload = body(auth_client(member).get(f"/api/rooms/{room.pk}"))
+    payload = body(auth_client(member).get(f"/api/rooms/{room.code}"))
 
     assert payload["pending_transfer"]["id"] == transfer.pk
     assert payload["pending_transfer"]["to_member"]["uid"] == member.uid

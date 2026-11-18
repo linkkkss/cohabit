@@ -527,7 +527,7 @@
 > **没有公开的 `POST /api/rooms`，也没有 `POST /api/rooms/:code/join`。**
 > 寝室只能由 `type=INVITE, room=null` 的双方 confirm 创建；加入只能由 `INVITE(room≠null)` 或 `APPLY` 的双方 confirm 发生（02 §4.3/§4.4）。
 >
-> **路由约束**：`GET /api/rooms/:code` 使用 `<str:code>`，只接受 9 位数字 code；`PATCH/动作 /api/rooms/:id` 使用 `<int:id>`，只接受内部主键。两者 URL 形状相同但 converter 不同，Django 路由必须按 `mine` → 公开/详情 `str:code` → 管理 `int:id` 的顺序注册，避免 `GET /api/rooms/482913756` 被 id 路由误吞或 `PATCH /api/rooms/abc` 落不到详情路由。
+> **路由约束**：`GET /api/rooms/:code` 使用 `<str:code>`，只接受 9 位数字 code；数字内部主键的 `GET /api/rooms/:id` 返回 404。`PATCH/动作 /api/rooms/:id` 使用 `<int:id>`，只接受内部主键；`PATCH/动作 /api/rooms/:code` 返回 404。两者 URL 形状相同但 converter 不同，Django 路由必须按 `mine` → 公开/详情 `str:code` → 管理 `int:id` 的顺序注册，避免 `GET /api/rooms/482913756` 被 id 路由误吞或 `PATCH /api/rooms/abc` 落不到详情路由。
 
 | 方法/路径 | 权限 | 说明 |
 | --- | --- | --- |
