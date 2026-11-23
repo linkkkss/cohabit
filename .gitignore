@@ -1,0 +1,13 @@
+# AgentTeams / 本地工具状态（不提交）
+.agent-teams/
+.memsearch/
+
+# Python / Node / QA 产物（工程内另有 0.cohabit/.gitignore）
+__pycache__/
+*.py[cod]
+node_modules/
+dist/
+.pgdata/
+.pgpw
+.env
+.walkthrough/
