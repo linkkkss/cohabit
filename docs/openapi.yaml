@@ -1,0 +1,1212 @@
+openapi: 3.0.3
+info:
+  title: Cohabit API
+  version: 1.0.0-draft
+  description: |
+    Cohabit 校园舍友匹配 API v1（契约草案）。
+    权威说明见 docs/04-API契约.md；状态机/权限见 docs/02-组寝状态机.md；字段见 docs/03-数据字典与问卷.md。
+    本文件是前后端并行开发的机器可读契约，不是运行时自动生成的最终文档。
+servers:
+  - url: http://localhost:8000/api
+    description: 本地开发（Vite 代理 /api）
+  - url: /api
+    description: 生产同域
+tags:
+  - name: auth
+  - name: me
+  - name: question
+  - name: users
+  - name: match
+  - name: rooms
+  - name: transfers
+  - name: connections
+  - name: notifications
+  - name: safety
+  - name: system
+security:
+  - bearerAuth: []
+paths:
+  /auth/send-code:
+    post:
+      operationId: postAuthSendCode
+      tags: [auth]
+      summary: 发送邮箱验证码
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SendCodeRequest'}
+      responses:
+        '204': {description: 已发送（生产）}
+        '200':
+          description: DEBUG 返回 dev_code
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dev_code: {type: string, example: '123456'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+  /auth/register:
+    post:
+      operationId: postAuthRegister
+      tags: [auth]
+      summary: 邮箱验证码注册
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegisterRequest'}
+      responses:
+        '201':
+          description: 注册并登录
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthResult'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+  /auth/login:
+    post:
+      operationId: postAuthLogin
+      tags: [auth]
+      summary: 邮箱密码登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/LoginRequest'}
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthResult'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+  /auth/refresh:
+    post:
+      operationId: postAuthRefresh
+      tags: [auth]
+      summary: 轮换 refresh Cookie 并返回 access
+      security:
+        - refreshCookie: []
+      responses:
+        '200':
+          description: 新 access
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AccessResult'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+  /auth/logout:
+    post:
+      operationId: postAuthLogout
+      tags: [auth]
+      summary: 注销并清 Cookie
+      security:
+        - bearerAuth: []
+        - refreshCookie: []
+      responses:
+        '204': {description: 已注销}
+  /me:
+    get:
+      operationId: getMe
+      tags: [me]
+      summary: 当前用户汇总
+      responses:
+        '200':
+          description: 用户 + 完整度 + 寝室 + 未读数
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Me'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    put:
+      operationId: putMe
+      tags: [me]
+      summary: 修改基本资料
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/MeUpdate'}
+      responses:
+        '200':
+          description: 更新后的 Me
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Me'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    delete:
+      operationId: deleteMe
+      tags: [me]
+      summary: 逻辑删除账号（级联禁用）
+      responses:
+        '204': {description: 已注销}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /me/profile:
+    get:
+      operationId: getMeProfile
+      tags: [me]
+      summary: 我的画像
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Profile'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    put:
+      operationId: putMeProfile
+      tags: [me]
+      summary: 全量提交问卷
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProfileWrite'}
+      responses:
+        '200':
+          description: 重算后的 Profile
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Profile'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+    patch:
+      operationId: patchMeProfile
+      tags: [me]
+      summary: 局部更新问卷
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProfileWrite'}
+      responses:
+        '200':
+          description: 重算后的 Profile
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Profile'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /me/contact:
+    get:
+      operationId: getMeContact
+      tags: [me]
+      summary: 本人联系方式与可见开关
+      responses:
+        '200':
+          description: ContactInfo
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ContactInfo'}
+    put:
+      operationId: putMeContact
+      tags: [me]
+      summary: 修改联系方式与可见开关
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ContactWrite'}
+      responses:
+        '200':
+          description: ContactInfo
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ContactInfo'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /questionnaire:
+    get:
+      operationId: getQuestionnaire
+      tags: [question]
+      summary: v1 问卷配置
+      responses:
+        '200':
+          description: Questionnaire
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Questionnaire'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /users/{uid}:
+    get:
+      operationId: getUsersByUid
+      tags: [users]
+      summary: 同院同性别用户公开画像
+      parameters:
+        - $ref: '#/components/parameters/Uid'
+      responses:
+        '200':
+          description: 公开画像摘要（无 contact）
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PublicUser'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /match:
+    get:
+      operationId: getMatch
+      tags: [match]
+      summary: 匹配候选列表
+      parameters:
+        - {name: major, in: query, schema: {type: string}}
+        - {name: tags, in: query, description: 逗号分隔，AND, schema: {type: string}}
+        - {name: min_score, in: query, schema: {type: integer, minimum: 0, maximum: 100}}
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 分页 MatchScore
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PaginatedMatch'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /match/{uid}:
+    get:
+      operationId: getMatchByUid
+      tags: [match]
+      summary: 单人匹配详情
+      parameters:
+        - $ref: '#/components/parameters/Uid'
+      responses:
+        '200':
+          description: MatchScore
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/MatchScore'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /match/{uid}/score:
+    post:
+      operationId: postMatchByUidScore
+      tags: [match]
+      summary: 只计算契合度（测试按钮）
+      parameters:
+        - $ref: '#/components/parameters/Uid'
+      responses:
+        '200':
+          description: MatchScore
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/MatchScore'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+  /rooms:
+    get:
+      operationId: getRooms
+      tags: [rooms]
+      summary: 寝室广场
+      parameters:
+        - {name: major, in: query, schema: {type: string}}
+        - {name: capacity, in: query, schema: {type: integer, enum: [2, 4, 6]}}
+        - {name: tags, in: query, description: 逗号分隔，AND, schema: {type: string}}
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 分页 RoomSummary
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PaginatedRooms'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /rooms/mine:
+    get:
+      operationId: getRoomsMine
+      tags: [rooms]
+      summary: 我的寝室与待处理事项
+      responses:
+        '200':
+          description: 我的寝室汇总
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/MyRoom'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /rooms/{code}:
+    get:
+      operationId: getRoomsByCode
+      tags: [rooms]
+      summary: 寝室详情（按 9 位 code）
+      parameters:
+        - $ref: '#/components/parameters/RoomCode'
+      responses:
+        '200':
+          description: RoomDetail
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RoomDetail'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /rooms/{id}:
+    patch:
+      operationId: patchRoomsById
+      tags: [rooms]
+      summary: 房主修改标题/标签
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RoomPatch'}
+      responses:
+        '200':
+          description: RoomDetail
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RoomDetail'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /rooms/{id}/lock:
+    post:
+      operationId: postRoomsByIdLock
+      tags: [rooms]
+      summary: 房主锁定
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        '200': {$ref: '#/components/responses/RoomDetailResponse'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /rooms/{id}/unlock:
+    post:
+      operationId: postRoomsByIdUnlock
+      tags: [rooms]
+      summary: 房主解锁
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        '200': {$ref: '#/components/responses/RoomDetailResponse'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /rooms/{id}/dissolve:
+    post:
+      operationId: postRoomsByIdDissolve
+      tags: [rooms]
+      summary: 房主解散
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        '200': {$ref: '#/components/responses/RoomDetailResponse'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /rooms/{id}/leave:
+    post:
+      operationId: postRoomsByIdLeave
+      tags: [rooms]
+      summary: 非房主成员退出
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        '204': {description: 已退出}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /rooms/{id}/members/{uid}:
+    delete:
+      operationId: deleteRoomsByIdMembersByUid
+      tags: [rooms]
+      summary: 房主移除成员
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+        - $ref: '#/components/parameters/Uid'
+      responses:
+        '204': {description: 已移除}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /rooms/{id}/transfer:
+    post:
+      operationId: postRoomsByIdTransfer
+      tags: [transfers]
+      summary: 房主发起转让
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/TransferCreate'}
+      responses:
+        '201':
+          description: 转让摘要
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RoomTransfer'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /room-transfers/{id}/accept:
+    post:
+      operationId: postRoomTransfersByIdAccept
+      tags: [transfers]
+      summary: 接受转让
+      parameters:
+        - $ref: '#/components/parameters/TransferId'
+      responses:
+        '200':
+          description: 转让摘要
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RoomTransfer'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /room-transfers/{id}/decline:
+    post:
+      operationId: postRoomTransfersByIdDecline
+      tags: [transfers]
+      summary: 拒绝转让
+      parameters:
+        - $ref: '#/components/parameters/TransferId'
+      responses:
+        '200':
+          description: 转让摘要
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RoomTransfer'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /room-transfers/{id}/cancel:
+    post:
+      operationId: postRoomTransfersByIdCancel
+      tags: [transfers]
+      summary: 房主取消转让
+      parameters:
+        - $ref: '#/components/parameters/TransferId'
+      responses:
+        '200':
+          description: 转让摘要
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RoomTransfer'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /public/rooms/{code}:
+    get:
+      operationId: getPublicRoomsByCode
+      tags: [rooms]
+      summary: 未登录公开寝室摘要
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/RoomCode'
+      responses:
+        '200':
+          description: 公开摘要（无 uid/contact/画像）
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PublicRoom'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /connections:
+    get:
+      operationId: getConnections
+      tags: [connections]
+      summary: 收件/发件箱
+      parameters:
+        - {name: role, in: query, schema: {type: string, enum: [inbox, sent], default: inbox}}
+        - {name: status, in: query, description: 可逗号分隔, schema: {type: string}}
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 分页 ConnectionSummary（无 contact）
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PaginatedConnections'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      operationId: postConnections
+      tags: [connections]
+      summary: 创建邀请/申请
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ConnectionCreate'}
+      responses:
+        '201':
+          description: ConnectionDetail（未解锁，无 contact）
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ConnectionDetail'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+  /connections/{id}:
+    get:
+      operationId: getConnectionsById
+      tags: [connections]
+      summary: 请求详情
+      parameters:
+        - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200':
+          description: ConnectionDetail（按状态含 contact）
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ConnectionDetail'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /connections/{id}/accept:
+    post:
+      operationId: postConnectionsByIdAccept
+      tags: [connections]
+      summary: 目标同意（第一步）
+      parameters:
+        - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200': {$ref: '#/components/responses/ConnectionDetailResponse'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /connections/{id}/decline:
+    post:
+      operationId: postConnectionsByIdDecline
+      tags: [connections]
+      summary: 目标拒绝
+      parameters:
+        - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200': {$ref: '#/components/responses/ConnectionDetailResponse'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /connections/{id}/cancel:
+    post:
+      operationId: postConnectionsByIdCancel
+      tags: [connections]
+      summary: 撤回/结束了解
+      parameters:
+        - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200': {$ref: '#/components/responses/ConnectionDetailResponse'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /connections/{id}/confirm:
+    post:
+      operationId: postConnectionsByIdConfirm
+      tags: [connections]
+      summary: 第二步确认
+      parameters:
+        - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200': {$ref: '#/components/responses/ConnectionDetailResponse'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /notifications:
+    get:
+      operationId: getNotifications
+      tags: [notifications]
+      summary: 通知列表
+      parameters:
+        - {name: unread, in: query, schema: {type: boolean}}
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 分页 Notification
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PaginatedNotifications'}
+  /notifications/unread-count:
+    get:
+      operationId: getNotificationsUnreadCount
+      tags: [notifications]
+      summary: 未读数
+      responses:
+        '200':
+          description: 未读数
+          content:
+            application/json:
+              schema: {type: object, properties: {count: {type: integer}}}
+  /notifications/{id}/read:
+    post:
+      operationId: postNotificationsByIdRead
+      tags: [notifications]
+      summary: 标记已读
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: integer, minimum: 1}}
+      responses:
+        '200':
+          description: 已读通知
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Notification'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /notifications/read-all:
+    post:
+      operationId: postNotificationsReadAll
+      tags: [notifications]
+      summary: 全部已读
+      responses:
+        '200':
+          description: 更新数量
+          content:
+            application/json:
+              schema: {type: object, properties: {updated: {type: integer}}}
+  /reports:
+    post:
+      operationId: postReports
+      tags: [safety]
+      summary: 举报
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ReportCreate'}
+      responses:
+        '201':
+          description: 举报记录
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Report'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+  /blocks:
+    get:
+      operationId: getBlocks
+      tags: [safety]
+      summary: 我的拉黑列表
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 分页 Block
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PaginatedBlocks'}
+    post:
+      operationId: postBlocks
+      tags: [safety]
+      summary: 拉黑（幂等）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [uid], properties: {uid: {type: string, example: '0519283746'}}}
+      responses:
+        '204': {description: 已拉黑}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /blocks/{uid}:
+    delete:
+      operationId: deleteBlocksByUid
+      tags: [safety]
+      summary: 取消拉黑（幂等）
+      parameters:
+        - $ref: '#/components/parameters/Uid'
+      responses:
+        '204': {description: 已取消}
+  /health:
+    get:
+      operationId: getHealth
+      tags: [system]
+      summary: 健康检查
+      security: []
+      responses:
+        '200':
+          description: 正常
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Health'}
+        '503':
+          description: DB 不可用
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Health'}
+  /timewindow:
+    get:
+      operationId: getTimeWindowStatus
+      tags: [system]
+      summary: 当前学院时间窗状态（只读，尾斜杠可选）
+      responses:
+        '200':
+          description: 阶段与倒计时；无记录/无学院/已结束为 CLOSED
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TimeWindowStatus'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [system]
+      summary: 管理看板（staff）
+      responses:
+        '200':
+          description: 计数
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminStats'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: refresh
+  parameters:
+    Uid:
+      name: uid
+      in: path
+      required: true
+      schema: {type: string, pattern: '^[0-9]{10}$'}
+    RoomCode:
+      name: code
+      in: path
+      required: true
+      schema: {type: string, pattern: '^[0-9]{9}$'}
+    RoomId:
+      name: id
+      in: path
+      required: true
+      schema: {type: integer, minimum: 1}
+    TransferId:
+      name: id
+      in: path
+      required: true
+      schema: {type: integer, minimum: 1}
+    ConnectionId:
+      name: id
+      in: path
+      required: true
+      schema: {type: integer, minimum: 1}
+    Page:
+      name: page
+      in: query
+      schema: {type: integer, minimum: 1, default: 1}
+    PageSize:
+      name: page_size
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 50, default: 20}
+  responses:
+    BadRequest:
+      description: 参数/业务校验失败
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Unauthorized:
+      description: 未认证/凭证失效
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Forbidden:
+      description: 已认证但无权限
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    NotFound:
+      description: 不存在或不可见
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Conflict:
+      description: 状态/并发/唯一性冲突
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    RateLimited:
+      description: 限频
+      headers:
+        Retry-After:
+          schema: {type: integer}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    RoomDetailResponse:
+      description: 更新后的寝室详情
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/RoomDetail'}
+    ConnectionDetailResponse:
+      description: 更新后的请求详情
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ConnectionDetail'}
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: {type: string, example: ROOM_FULL}
+        message: {type: string, example: 房间已满员}
+        detail:
+          nullable: true
+          type: object
+          additionalProperties: true
+    SendCodeRequest:
+      type: object
+      required: [email, purpose]
+      properties:
+        email: {type: string, format: email}
+        purpose: {type: string, enum: [REGISTER], default: REGISTER}
+    RegisterRequest:
+      type: object
+      required: [email, code, password, nickname, gender, grade, college]
+      properties:
+        email: {type: string, format: email}
+        code: {type: string, minLength: 6, maxLength: 6}
+        password: {type: string, minLength: 8, maxLength: 64}
+        nickname: {type: string, minLength: 1, maxLength: 20}
+        gender: {type: string, enum: [MALE, FEMALE]}
+        grade: {type: integer, minimum: 1, maximum: 5}
+        college: {type: string, minLength: 1, maxLength: 50}
+        major: {type: string, maxLength: 50, default: ''}
+        invite_code: {type: string, minLength: 8, maxLength: 12}
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: {type: string, format: email}
+        password: {type: string}
+    AuthResult:
+      type: object
+      required: [user, access, expires_in]
+      properties:
+        user: {$ref: '#/components/schemas/Me'}
+        access: {type: string}
+        expires_in: {type: integer, example: 1800}
+    AccessResult:
+      type: object
+      required: [access, expires_in]
+      properties:
+        access: {type: string}
+        expires_in: {type: integer, example: 1800}
+    UserSummary:
+      type: object
+      required: [uid, nickname, avatar_key]
+      properties:
+        uid: {type: string, pattern: '^[0-9]{10}$'}
+        nickname: {type: string}
+        avatar_key: {type: string, enum: [avatar-01, avatar-02, avatar-03, avatar-04, avatar-05, avatar-06]}
+        gender: {type: string, enum: [MALE, FEMALE]}
+        college: {type: string}
+        major: {type: string}
+        grade: {type: integer, minimum: 1, maximum: 5}
+    Me:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          properties:
+            role: {type: string, enum: [STUDENT, ADMIN]}
+            status: {type: string, enum: [ACTIVE, DISABLED]}
+            profile_completeness: {type: integer, minimum: 0, maximum: 100}
+            questionnaire_version: {type: string, example: v1}
+            room:
+              nullable: true
+              allOf: [{$ref: '#/components/schemas/RoomSummary'}]
+            unread_count: {type: integer, minimum: 0}
+    MeUpdate:
+      type: object
+      properties:
+        nickname: {type: string, minLength: 1, maxLength: 20}
+        grade: {type: integer, minimum: 1, maximum: 5}
+        college: {type: string, minLength: 1, maxLength: 50}
+        major: {type: string, maxLength: 50}
+    ContactInfo:
+      type: object
+      properties:
+        qq: {type: string, nullable: true, maxLength: 20}
+        wechat: {type: string, nullable: true, maxLength: 40}
+        phone: {type: string, nullable: true, maxLength: 20}
+        show_qq: {type: boolean}
+        show_wechat: {type: boolean}
+        show_phone: {type: boolean}
+        unlocked: {type: boolean, description: 连接详情中为 true；本人联系方式接口不返回}
+    ContactWrite:
+      type: object
+      properties:
+        qq: {type: string, nullable: true}
+        wechat: {type: string, nullable: true}
+        phone: {type: string, nullable: true}
+        show_qq: {type: boolean}
+        show_wechat: {type: boolean}
+        show_phone: {type: boolean}
+    Profile:
+      type: object
+      properties:
+        hard_answers: {type: object, additionalProperties: {type: string}}
+        soft_answers: {type: object, additionalProperties: {type: integer, minimum: 1, maximum: 5}}
+        red_lines: {type: array, items: {type: string}}
+        red_lines_confirmed: {type: boolean}
+        tags: {type: array, items: {type: string}}
+        prompts: {type: object, additionalProperties: {type: string}}
+        dims: {type: object, additionalProperties: {type: integer, minimum: 0, maximum: 100}}
+        completeness: {type: integer, minimum: 0, maximum: 100}
+        questionnaire_version: {type: string, example: v1}
+    ProfileWrite:
+      type: object
+      properties:
+        hard_answers: {type: object, additionalProperties: {type: string}}
+        soft_answers: {type: object, additionalProperties: {type: integer, minimum: 1, maximum: 5}}
+        red_lines: {type: array, items: {type: string}}
+        red_lines_confirmed: {type: boolean}
+        tags: {type: array, items: {type: string}}
+        prompts: {type: object, additionalProperties: {type: string}}
+        questionnaire_version: {type: string}
+    Questionnaire:
+      type: object
+      properties:
+        version: {type: string}
+        hard: {type: array, items: {type: object, additionalProperties: true}}
+        soft: {type: array, items: {type: object, additionalProperties: true}}
+        red_lines: {type: array, items: {type: object, additionalProperties: true}}
+        tags: {type: array, items: {type: object, additionalProperties: true}}
+        prompts: {type: array, items: {type: object, additionalProperties: true}}
+    PublicUser:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          properties:
+            tags: {type: array, items: {type: string}}
+            prompts: {type: object, additionalProperties: {type: string}}
+            headline: {type: string, nullable: true}
+            completeness: {type: integer}
+    MatchTarget:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          properties:
+            tags: {type: array, items: {type: string}}
+            completeness: {type: integer}
+            headline: {type: string, nullable: true}
+    MatchScore:
+      type: object
+      required: [target, score, base, tag_bonus, red_penalty, dims, reasons, conflicts]
+      properties:
+        target: {$ref: '#/components/schemas/MatchTarget'}
+        score: {type: integer, minimum: 0, maximum: 100}
+        base: {type: number, format: float}
+        tag_bonus: {type: integer, minimum: 0, maximum: 6}
+        red_penalty: {type: integer, minimum: 0, maximum: 30}
+        dims: {type: object, additionalProperties: true}
+        reasons: {type: array, items: {type: string}}
+        conflicts: {type: array, items: {type: object, additionalProperties: true}}
+        version_warning: {type: string, nullable: true}
+    RoomSummary:
+      type: object
+      required: [id, code, title, capacity, member_count, status]
+      properties:
+        id: {type: integer}
+        code: {type: string, pattern: '^[0-9]{9}$'}
+        title: {type: string}
+        capacity: {type: integer, enum: [2, 4, 6]}
+        member_count: {type: integer}
+        status: {type: string, enum: [RECRUITING, FULL, LOCKED, ARCHIVED, DISSOLVED]}
+        gender: {type: string, enum: [MALE, FEMALE]}
+        college: {type: string}
+        major: {type: string}
+        tags: {type: array, items: {type: string}}
+        owner: {$ref: '#/components/schemas/UserSummary'}
+        member_preview: {type: array, items: {$ref: '#/components/schemas/UserSummary'}}
+        can_apply: {type: boolean}
+        my_role: {type: string, nullable: true, enum: [OWNER, MEMBER, null]}
+        pending_transfer:
+          nullable: true
+          allOf: [{$ref: '#/components/schemas/RoomTransfer'}]
+    RoomMember:
+      type: object
+      properties:
+        uid: {type: string}
+        nickname: {type: string}
+        avatar_key: {type: string}
+        role: {type: string, enum: [OWNER, MEMBER]}
+        status: {type: string, enum: [ACTIVE, LEFT, REMOVED, ARCHIVED]}
+        created_at: {type: string, format: date-time}
+    RoomDetail:
+      allOf:
+        - $ref: '#/components/schemas/RoomSummary'
+        - type: object
+          properties:
+            members:
+              type: array
+              description: 非终态仅 ACTIVE；终态房间返回全部历史成员作为最终名单
+              items: {$ref: '#/components/schemas/RoomMember'}
+            actions: {type: object, additionalProperties: {type: boolean}}
+            created_at: {type: string, format: date-time}
+            archived_at: {type: string, nullable: true, format: date-time}
+            dissolved_at: {type: string, nullable: true, format: date-time}
+    RoomPatch:
+      type: object
+      properties:
+        title: {type: string, maxLength: 30}
+        tags: {type: array, maxItems: 8, items: {type: string}}
+    MyRoom:
+      type: object
+      properties:
+        room:
+          nullable: true
+          allOf: [{$ref: '#/components/schemas/RoomDetail'}]
+        pending_applications: {type: array, items: {$ref: '#/components/schemas/ConnectionSummary'}}
+        pending_transfer:
+          nullable: true
+          allOf: [{$ref: '#/components/schemas/RoomTransfer'}]
+    RoomTransfer:
+      type: object
+      properties:
+        id: {type: integer}
+        status: {type: string, enum: [PENDING, ACCEPTED, DECLINED, CANCELLED, EXPIRED]}
+        from_owner: {$ref: '#/components/schemas/UserSummary'}
+        to_member: {$ref: '#/components/schemas/UserSummary'}
+        expires_at: {type: string, format: date-time}
+        created_at: {type: string, format: date-time}
+    TransferCreate:
+      type: object
+      required: [to_uid]
+      properties:
+        to_uid: {type: string, pattern: '^[0-9]{10}$'}
+    ConnectionSummary:
+      type: object
+      properties:
+        id: {type: integer}
+        type: {type: string, enum: [INVITE, APPLY]}
+        status: {type: string, enum: [PENDING, CONTACT_SHARED, CONFIRMING, CONFIRMED, DECLINED, CANCELLED, EXPIRED]}
+        direction: {type: string, enum: [inbox, sent]}
+        initiator: {$ref: '#/components/schemas/UserSummary'}
+        target: {$ref: '#/components/schemas/UserSummary'}
+        room:
+          nullable: true
+          allOf: [{$ref: '#/components/schemas/RoomSummary'}]
+        message: {type: string}
+        contact_shared_at: {type: string, nullable: true, format: date-time}
+        expires_at: {type: string, nullable: true, format: date-time, description: CONFIRMED 为 null}
+        actions: {type: object, additionalProperties: {type: boolean}}
+    ConnectionDetail:
+      allOf:
+        - $ref: '#/components/schemas/ConnectionSummary'
+        - type: object
+          properties:
+            initiator_confirm_at: {type: string, nullable: true, format: date-time}
+            target_confirm_at: {type: string, nullable: true, format: date-time}
+            closed_by:
+              nullable: true
+              allOf: [{$ref: '#/components/schemas/UserSummary'}]
+            close_reason: {type: string}
+            contact:
+              description: 未解锁或无可展示字段时返回空对象 {}
+              allOf: [{$ref: '#/components/schemas/ContactInfo'}]
+            version: {type: integer}
+    ConnectionCreate:
+      type: object
+      required: [type, target_uid]
+      properties:
+        type: {type: string, enum: [INVITE, APPLY]}
+        target_uid: {type: string, pattern: '^[0-9]{10}$'}
+        room_id: {type: integer}
+        capacity_pref: {type: integer, enum: [2, 4, 6]}
+        message: {type: string, maxLength: 200}
+    PublicRoom:
+      type: object
+      properties:
+        id: {type: integer}
+        code: {type: string}
+        title: {type: string}
+        capacity: {type: integer}
+        member_count: {type: integer}
+        status: {type: string}
+        college: {type: string}
+        tags: {type: array, items: {type: string}}
+        members: {type: array, items: {type: object, additionalProperties: true}}
+    Notification:
+      type: object
+      properties:
+        id: {type: integer}
+        type: {type: string}
+        title: {type: string}
+        payload: {type: object, additionalProperties: true}
+        read_at: {type: string, nullable: true, format: date-time}
+        created_at: {type: string, format: date-time}
+    Report:
+      type: object
+      properties:
+        id: {type: integer}
+        target_type: {type: string, enum: [USER, ROOM, CONNECTION]}
+        target_id: {type: integer}
+        reason: {type: string}
+        status: {type: string, enum: [OPEN, RESOLVED, DISMISSED]}
+        handled_by: {type: integer, nullable: true}
+        created_at: {type: string, format: date-time}
+    ReportCreate:
+      type: object
+      required: [target_type, target_id, reason]
+      properties:
+        target_type: {type: string, enum: [USER, ROOM, CONNECTION]}
+        target_id: {type: integer, minimum: 1}
+        reason: {type: string, minLength: 1, maxLength: 200}
+    Block:
+      type: object
+      properties:
+        uid: {type: string}
+        nickname: {type: string}
+        avatar_key: {type: string}
+        created_at: {type: string, format: date-time}
+    Health:
+      type: object
+      properties:
+        status: {type: string, enum: [ok, degraded]}
+        version: {type: string}
+        db: {type: string, enum: [ok, error]}
+        time: {type: string, format: date-time}
+    TimeWindowStatus:
+      type: object
+      description: |
+        时间窗状态（docs/04 §3.13）。时间字段为服务器本地时区 ISO 8601（带偏移量，如 +08:00），
+        是 docs/04 §1.1 UTC 约定的显式例外。
+        UPCOMING：start_at/end_at 有值、days_until_start ≥ 1、days_until_end = null；
+        OPEN：days_until_start = 0、days_until_end ≥ 1；
+        CLOSED：days_* 均为 null（无记录时 start_at/end_at 也为 null）。
+      required: [college, status, is_open, start_at, end_at, days_until_start, days_until_end, server_time]
+      properties:
+        college: {type: string, description: 当前用户学院；无学院为空串}
+        status: {type: string, enum: [OPEN, UPCOMING, CLOSED]}
+        is_open: {type: boolean}
+        start_at: {type: string, format: date-time, nullable: true}
+        end_at: {type: string, format: date-time, nullable: true}
+        days_until_start: {type: integer, minimum: 0, nullable: true}
+        days_until_end: {type: integer, minimum: 0, nullable: true}
+        server_time: {type: string, format: date-time}
+    AdminStats:
+      type: object
+      additionalProperties: true
+    PageMeta:
+      type: object
+      properties:
+        count: {type: integer}
+        next: {type: string, nullable: true}
+        previous: {type: string, nullable: true}
+    PaginatedMatch:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          properties:
+            results: {type: array, items: {$ref: '#/components/schemas/MatchScore'}}
+    PaginatedRooms:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          properties:
+            results: {type: array, items: {$ref: '#/components/schemas/RoomSummary'}}
+    PaginatedConnections:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          properties:
+            results: {type: array, items: {$ref: '#/components/schemas/ConnectionSummary'}}
+    PaginatedNotifications:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          properties:
+            results: {type: array, items: {$ref: '#/components/schemas/Notification'}}
+    PaginatedBlocks:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          properties:
+            results: {type: array, items: {$ref: '#/components/schemas/Block'}}
