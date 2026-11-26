@@ -8,6 +8,7 @@ import {
   connectionErrorMessage,
   declineConnection,
   fetchConnections,
+  preApproveConnection,
   type ConnectionStatus,
   type ConnectionSummary,
 } from '@/api/connections'
@@ -27,7 +28,7 @@ import SecurityActions from '@/components/security/SecurityActions.vue'
 type Role = 'inbox' | 'sent'
 type StatusFilter = 'all' | 'PENDING' | 'awaiting' | 'CONFIRMED' | 'closed'
 type ViewState = 'loading' | 'ready' | 'error'
-type DialogKind = 'decline' | 'cancel'
+type DialogKind = 'decline' | 'cancel' | 'pre-approve'
 
 const role = ref<Role>('inbox')
 const status = ref<StatusFilter>('all')
@@ -191,6 +192,9 @@ async function runDialog(): Promise<void> {
     if (kind === 'decline') {
       await declineConnection(target.id)
       notice.value = '已拒绝这个请求。'
+    } else if (kind === 'pre-approve') {
+      await preApproveConnection(target.id)
+      notice.value = '已先同意。对方上线后点一次“同意”，组寝就会直接成立。'
     } else {
       await cancelConnection(target.id)
       notice.value = '请求已关闭，联系方式已立即隐藏。'
@@ -214,11 +218,17 @@ const dialogTitle = computed(() => {
   if (dialogKind.value === 'decline') {
     return '拒绝这个请求？'
   }
+  if (dialogKind.value === 'pre-approve') {
+    return '先记下你的同意？'
+  }
   return dialogTarget.value.status === 'PENDING' ? '撤回这个请求？' : '结束这段了解？'
 })
 const dialogDescription = computed(() => {
   if (dialogKind.value === 'decline') {
     return '拒绝后请求会关闭，对方会收到通知。你们之后仍可以重新发起。'
+  }
+  if (dialogKind.value === 'pre-approve') {
+    return '先把“同意”记下来：对方上线后点一次“同意”，组寝就直接成立，不必同时在线。在此之前你仍可以撤回。'
   }
   if (dialogTarget.value?.status === 'PENDING') {
     return '撤回后对方会收到一条系统通知，你们之后仍然可以重新发起。'
@@ -228,6 +238,9 @@ const dialogDescription = computed(() => {
 const dialogConfirmLabel = computed(() => {
   if (dialogKind.value === 'decline') {
     return '拒绝请求'
+  }
+  if (dialogKind.value === 'pre-approve') {
+    return '好，我先同意'
   }
   return dialogTarget.value?.status === 'PENDING' ? '撤回请求' : '结束了解'
 })
@@ -378,6 +391,7 @@ onBeforeUnmount(() => {
           @decline="openDialog(connection, 'decline')"
           @confirm="router.push(connectionPath(connection.id))"
           @cancel="openDialog(connection, 'cancel')"
+          @pre-approve="openDialog(connection, 'pre-approve')"
         />
         <div class="connection-security">
           <SecurityActions

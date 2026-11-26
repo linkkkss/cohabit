@@ -17,6 +17,14 @@ export interface MatchTarget {
   completeness: number
   tags: string[]
   headline: string | null
+  /** 最近活跃时间（只读展示，用于判断“现在打扰合不合适”）。 */
+  last_active_at: string | null
+}
+
+/** 候选人风险摘要（docs/04 §3.11）：`code` 便于前端去重，`text` 直接可展示。 */
+export interface MatchRisk {
+  code: string
+  text: string
 }
 
 /**
@@ -47,6 +55,7 @@ export interface MatchScore {
   dims: MatchDims
   reasons: string[]
   conflicts: RedLineConflict[]
+  risks: MatchRisk[]
   version_warning: string | null
 }
 
@@ -110,6 +119,10 @@ function normalizeTarget(value: unknown): MatchTarget {
     completeness: clamp(asInt(record.completeness, 0), 0, 100),
     tags: stringArray(record.tags),
     headline: record.headline === null ? null : asString(record.headline) || null,
+    last_active_at:
+      typeof record.last_active_at === 'string' && record.last_active_at
+        ? record.last_active_at
+        : null,
   }
 }
 
@@ -140,6 +153,17 @@ function normalizeConflict(value: unknown): RedLineConflict | null {
   }
 }
 
+function normalizeRisk(value: unknown): MatchRisk | null {
+  if (!isRecord(value)) {
+    return null
+  }
+  const text = asString(value.text)
+  if (!text) {
+    return null
+  }
+  return { code: asString(value.code, 'risk'), text }
+}
+
 export function normalizeMatchScore(payload: unknown): MatchScore {
   const record = isRecord(payload) ? payload : {}
   return {
@@ -154,6 +178,9 @@ export function normalizeMatchScore(payload: unknown): MatchScore {
       ? record.conflicts
           .map(normalizeConflict)
           .filter((item): item is RedLineConflict => item !== null)
+      : [],
+    risks: Array.isArray(record.risks)
+      ? record.risks.map(normalizeRisk).filter((item): item is MatchRisk => item !== null)
       : [],
     version_warning:
       record.version_warning === null ? null : asString(record.version_warning) || null,

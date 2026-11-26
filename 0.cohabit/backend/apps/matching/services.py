@@ -22,6 +22,7 @@ from apps.matching.exceptions import (
     TargetInRoomError,
     TargetProfileIncompleteError,
 )
+from apps.matching.risks import risk_items
 from apps.profiles.exceptions import (
     ProfileIncompleteError as ProfilesProfileIncompleteError,
 )
@@ -123,6 +124,7 @@ def score_target(seeker: Any, uid: str) -> dict[str, Any]:
         result = algorithm.score_profiles(seeker_profile, target_profile)
     except (ProfilesProfileIncompleteError, MatchProfileIncompleteError) as exc:
         raise TargetProfileIncompleteError(target_profile.completeness) from exc
+    result["risks"] = risk_items(seeker_profile, target_profile, result)
     return {"target": target, "profile": target_profile, "match": result}
 
 
@@ -157,6 +159,7 @@ def match_list(seeker: Any) -> list[dict[str, Any]]:
             result = algorithm.score_profiles(seeker_profile, profile)
         except (ProfilesProfileIncompleteError, MatchProfileIncompleteError):
             continue
+        result["risks"] = risk_items(seeker_profile, profile, result)
         items.append({"user": candidate, "profile": profile, "match": result})
     items.sort(key=_sort_key)
     return items

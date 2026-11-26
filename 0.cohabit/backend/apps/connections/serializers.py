@@ -42,6 +42,14 @@ def _own_confirm_at(row: ConnectionRequest, viewer: Any) -> datetime | None:
     return row.target_confirm_at
 
 
+def pre_approved(row: ConnectionRequest) -> bool:
+    """发起人是否已在 ``PENDING`` 阶段先行确认（docs/02 §3.5.5）。"""
+    return (
+        row.status == ConnectionRequest.Status.PENDING
+        and row.initiator_confirm_at is not None
+    )
+
+
 def contact_visible(row: ConnectionRequest, now: datetime | None = None) -> bool:
     """按状态判定 contact 是否可见；在途但已过期按“已过期”处理（X-10）。"""
     if row.status not in CONTACT_STATUSES:
@@ -99,6 +107,10 @@ def actions_for(row: ConnectionRequest, viewer: Any) -> dict[str, bool]:
         "can_confirm": confirming_open
         and _own_confirm_at(row, viewer) is None,
         "can_view_contact": contact_visible(row),
+        # 发起人先确认：对方不同意也能随时撤回，所以只开放给 PENDING 的发起人。
+        "can_pre_approve": is_initiator
+        and status == ConnectionRequest.Status.PENDING
+        and row.initiator_confirm_at is None,
     }
 
 
@@ -119,6 +131,12 @@ def connection_summary(
         "message": row.message,
         "contact_shared_at": _dt(row.contact_shared_at),
         "expires_at": _dt(row.expires_at),
+        # 异步确认：对方最近活跃 + 发起人是否已经先确认（docs/04 §3.9）。
+        "initiator_last_active_at": _dt(row.initiator.last_active_at),
+        "target_last_active_at": _dt(row.target.last_active_at),
+        "initiator_pre_approved": pre_approved(row),
+        # 失败原因（DECLINED/TIMEOUT/ROOM_DISSOLVED/…），列表卡片也要能解释。
+        "close_reason": row.close_reason or "",
         "actions": actions_for(row, viewer),
     }
 

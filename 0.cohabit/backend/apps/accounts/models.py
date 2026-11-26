@@ -135,6 +135,13 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     status = models.CharField("状态", max_length=10, choices=Status.choices, default=Status.ACTIVE)
     is_staff = models.BooleanField("可访问后台", default=False)
     is_active = models.BooleanField("有效", default=True)
+    last_active_at = models.DateTimeField(
+        "最近活跃时间",
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="带 JWT 的请求会节流写入，仅用于展示“对方最近活跃”",
+    )
 
     objects = UserManager()
 

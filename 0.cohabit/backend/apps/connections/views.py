@@ -151,3 +151,22 @@ class ConnectionConfirmView(ConnectionAPIView):
         if room is not None:
             payload["room"] = room_summary(room, request.user)
         return Response(payload, status=status.HTTP_200_OK)
+
+
+class ConnectionPreApproveView(ConnectionAPIView):
+    """``POST /api/connections/:id/pre-approve``：发起人先确认（docs/02 §3.5.5）。
+
+    幂等：重复调用只返回当前详情，不会重复写审计。对方随后点“同意”时，
+    ``accept`` 会直接成立组寝，双方不必同时在线。
+    """
+
+    def post(self, request: Request, connection_id: int) -> Response:
+        row = services.pre_approve_request(
+            request.user,
+            connection_id,
+            request_id=_request_id(request),
+        )
+        return Response(
+            connection_detail(_reload(request, row.pk), request.user),
+            status=status.HTTP_200_OK,
+        )

@@ -30,6 +30,8 @@ export interface ConnectionActions {
   can_decline: boolean
   can_cancel: boolean
   can_confirm: boolean
+  /** 发起人在 PENDING 阶段先确认（异步两步确认的第一步）。 */
+  can_pre_approve: boolean
   can_view_contact: boolean
 }
 
@@ -53,15 +55,21 @@ export interface ConnectionSummary {
   message: string
   contact_shared_at: string | null
   expires_at: string | null
+  /** 异步确认：对方最近一次活跃（带 JWT 的请求会节流刷新）。 */
+  initiator_last_active_at: string | null
+  target_last_active_at: string | null
+  /** 发起人是否已经先确认（对方点“同意”即可直接成立）。 */
+  initiator_pre_approved: boolean
+  /** 关闭原因（docs/02 §3.8）；进行中为空串。 */
+  close_reason: string
   actions: ConnectionActions
 }
 
-/** docs/04 §3.10：详情比列表多 contact、双方确认时间与关闭原因。 */
+/** docs/04 §3.10：详情比列表多 contact、双方确认时间与关闭人。 */
 export interface ConnectionDetail extends ConnectionSummary {
   initiator_confirm_at: string | null
   target_confirm_at: string | null
   closed_by: UserSummary | null
-  close_reason: string
   contact: ContactInfo
   version: number
 }
@@ -169,6 +177,7 @@ const DEFAULT_ACTIONS: ConnectionActions = {
   can_decline: false,
   can_cancel: false,
   can_confirm: false,
+  can_pre_approve: false,
   can_view_contact: false,
 }
 
@@ -181,6 +190,7 @@ function normalizeActions(value: unknown): ConnectionActions {
     can_decline: asBool(value.can_decline),
     can_cancel: asBool(value.can_cancel),
     can_confirm: asBool(value.can_confirm),
+    can_pre_approve: asBool(value.can_pre_approve),
     can_view_contact: asBool(value.can_view_contact),
   }
 }
@@ -220,6 +230,10 @@ export function normalizeConnectionSummary(payload: unknown): ConnectionSummary 
     message: asString(record.message),
     contact_shared_at: nullableString(record.contact_shared_at),
     expires_at: nullableString(record.expires_at),
+    initiator_last_active_at: nullableString(record.initiator_last_active_at),
+    target_last_active_at: nullableString(record.target_last_active_at),
+    initiator_pre_approved: asBool(record.initiator_pre_approved),
+    close_reason: asString(record.close_reason),
     actions: normalizeActions(record.actions),
   }
 }
@@ -410,9 +424,20 @@ export function cancelConnection(id: number): Promise<ConnectionDetail> {
 /**
  * POST /api/connections/:id/confirm：两步确认。
  * 第一次返回 CONFIRMING；第二次返回 CONFIRMED，且响应里带 room。
+ * 若对方已经先确认，这一次就直接返回 CONFIRMED。
  */
 export function confirmConnection(id: number): Promise<ConnectionDetail> {
   return connectionAction(id, 'confirm')
+}
+
+/**
+ * POST /api/connections/:id/pre-approve：发起人先确认。
+ *
+ * 状态仍是 PENDING，但对方上线后点一次“同意”就直接成立组寝，
+ * 双方不必同时在线。幂等，重复调用不会产生副作用。
+ */
+export function preApproveConnection(id: number): Promise<ConnectionDetail> {
+  return connectionAction(id, 'pre-approve')
 }
 
 /** POST /api/connections：创建邀请/申请（本任务主要做收件箱，保留完整能力）。 */

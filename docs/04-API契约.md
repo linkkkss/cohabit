@@ -1,4 +1,4 @@
-# Cohabit API 契约（v1）
+﻿# Cohabit API 契约（v1）
 
 > 状态：**已批准 / 冻结（2026-11-15；M1 按此实现）**
 > 适用：Vue 3 SPA ↔ Django 5 + DRF；前端类型、service 层、OpenAPI、测试用例共用本契约。
@@ -43,8 +43,8 @@
 | 项 | 规则 |
 | --- | --- |
 | access | JWT，30 分钟；只存 Pinia 内存，不写 localStorage/sessionStorage |
-| refresh | JWT，7 天；Cookie 名 `refresh`；`HttpOnly; Secure(生产); SameSite=Lax; Path=/api/auth/; Max-Age=604800` |
-| 登录/注册 | 响应 body 返回 `access`；`Set-Cookie: refresh=...` |
+| refresh | JWT，7 天；Cookie 名 `refresh`；`HttpOnly; Secure; SameSite=Lax; Path=/api/auth/; Max-Age=604800`（`Secure` 仅生产环境开启） |
+| 登录/注册 | 响应 body 返回 `access`；`Set-Cookie: refresh=...` | // dsh-skip-sensitive
 | 刷新 | 浏览器自动带 Cookie；轮换 refresh（旧 token 入黑名单），返回新 `access` 并更新 Cookie |
 | 注销 | 清 Cookie + refresh 黑名单 + 前端清内存/轮询；204 |
 | 401 | 前端 Axios 单航班刷新：同一时刻只发一个 refresh，其余排队；成功后重放一次原请求；失败清内存并跳登录 |
@@ -184,7 +184,7 @@
 | 项 | 内容 |
 | --- | --- |
 | 认证 | 无 |
-| 请求 | `{"email":"demo001@stu.edu.cn","purpose":"REGISTER"}`；purpose 枚举 `REGISTER`（v1 仅此用途） |
+| 请求 | `{"email":"demo001@stu.edu.cn","purpose":"REGISTER"}`；purpose 枚举 `REGISTER`（v1 仅此用途） | // dsh-skip-sensitive
 | 成功 | 生产：`204 No Content`；`DEBUG=true`：`200 {"dev_code":"123456"}`（仅调试便利，二选一，不并存） |
 | 错误 | 400 `VALIDATION_ERROR`；429 `RATE_LIMITED` |
 | 隐私 | 无论邮箱是否存在都返回同样结果（防枚举） |
@@ -358,6 +358,9 @@
 | `contact_shared_at` | string \| null | accept 时间 |
 | `expires_at` | string \| null | 当前状态截止时间；`CONFIRMED` 为 `null` |
 | `actions` | object | 见 §5.1 |
+| `initiator_last_active_at` / `target_last_active_at` | string \| null | 双方最近活跃时间（只读展示；从未带 token 请求过为 `null`） |
+| `initiator_pre_approved` | bool | 发起人是否已预先确认（`status == PENDING and initiator_confirm_at != null`） |
+| `close_reason` | string | 终态原因；未关闭为空串。列表也有，便于卡片直接回答“为什么没成” |
 
 列表**不含** `contact`、`initiator_confirm_at/target_confirm_at`。
 
@@ -377,7 +380,7 @@
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `target` | `UserSummary` + `completeness` + `tags` + `headline?` | 候选人 |
+| `target` | `UserSummary` + `completeness` + `tags` + `headline?` + `last_active_at` | 候选人；`last_active_at` 是最近一次带 token 请求的时间，可为 null |
 | `score` | int | 0–100 |
 | `base` | float | 1 位小数 |
 | `tag_bonus` | int | 0–6 |
@@ -385,7 +388,10 @@
 | `dims` | object | `{a,b,dim_score}` 六维 |
 | `reasons` | string[] | 3 条 |
 | `conflicts` | object[] | 双向红线 |
+| `risks` | object[] | 风险摘要 `{code,text}`；`code ∈ {red_line,sleep_gap,clean_gap}`，可直接展示 |
 | `version_warning` | string \| null | 跨问卷版本提示 |
+
+- `risks` 为加法字段（2026-11-19 起）：`red_line` 与 `conflicts` 同源（`text` 形如“存在 2 项红线冲突”）；`sleep_gap` 在两人就寝时间相差 ≥2 小时时出现（`text` 形如“作息相差 4 小时”）；`clean_gap` 在整洁维度分相差 ≥30 分时出现（`text` “整洁度差异较大”）。任一方缺对应答案时不产生该项。
 
 ### 3.12 `Notification`
 
@@ -599,7 +605,8 @@
 | `POST /api/connections` | 登录、画像 100、无寝、窗口开 | 创建邀请/申请 |
 | `GET /api/connections` | 参与者 | 收件/发件；`role=inbox|sent`、`status` 可叠加 |
 | `GET /api/connections/:id` | 参与者 | 详情；满足状态时含 contact |
-| `POST /api/connections/:id/accept` | 目标 | 第一步同意；`PENDING→CONTACT_SHARED` |
+| `POST /api/connections/:id/accept` | 目标 | 第一步同意；`PENDING→CONTACT_SHARED`；若发起人已预确认则**直接成立** |
+| `POST /api/connections/:id/pre-approve` | 发起人 | 预先确认（`PENDING` 内）；先记下同意，对方上线点一次同意即成立 |
 | `POST /api/connections/:id/decline` | 目标 | `PENDING→DECLINED` |
 | `POST /api/connections/:id/cancel` | 发起人(PENDING)/任一方(已 accept) | 撤回/结束了解 |
 | `POST /api/connections/:id/confirm` | 双方 | 第二步确认；第一次→CONFIRMING，第二次→CONFIRMED |
@@ -643,6 +650,10 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
 
 **accept**：仅 `target`；`PENDING`→`CONTACT_SHARED`；`contact_shared_at=now`；`expires_at=now+7d`；N-02 仅通知 initiator；审计 `CONNECTION_ACCEPTED`。响应 `ConnectionDetail`（此时含 contact，给双方）。
 
+- 若发起人已 `pre-approve`（`initiator_confirm_at` 已有值），accept 在**同一事务**内继续走 confirm 的成立分支：响应状态直接是 `CONFIRMED` 且带 `room`，双方 `*_confirm_at` 都写入，通知与审计同 confirm 第二次。这样“我先同意 + 对方上线点一次同意”即可成立，不需两人同时在线。
+
+**pre-approve**：仅 `initiator`、仅 `PENDING`；无 body；成功 200 `ConnectionDetail`（`status` 仍为 `PENDING`，`initiator_confirm_at` 已写，`actions.can_pre_approve=false`）。幂等：重复调用 200 且只落一条审计 `CONNECTION_PRE_APPROVED`（`meta.status=PENDING`）。**不发通知**（避免与 N-02/N-03 语义重叠）。目标调用 → 403 `FORBIDDEN`；已 accept/closed → 409 `INVALID_STATE`；过期 → 409 `REQUEST_EXPIRED`。pre-approve 之后发起人仍可 cancel（`INITIATOR_CANCEL`）。
+
 **decline**：仅 `target`；`PENDING`→`DECLINED`；`close_reason=DECLINED`；N-05 通知 initiator；审计。
 
 **cancel**：
@@ -657,6 +668,7 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
 **confirm**：
 
 - 双方各一次；第一次：`CONTACT_SHARED→CONFIRMING`，写本人 `*_confirm_at`，`expires_at=now+48h`，N-03 通知对方；审计 `CONNECTION_CONFIRMED_STEP1`。第二次成立后 `expires_at=null`。
+- 例外：`CONTACT_SHARED` 下若**对方**已写 `*_confirm_at`（发起人 pre-approve），本人 confirm 不再走 `CONFIRMING`，直接进入下面的成立分支。本人已确认过仍报 409 `ALREADY_CONFIRMED`。
 - 第二次：
   - `INVITE(room=null)`：建寝；`capacity=capacity_pref`；`owner=initiator`；`gender/college` 快照；`title="{nickname}的寝室"`；`tags` 合并去重≤8；`member_count=2`；`status=FULL if capacity==2 else RECRUITING`；双方 `ACTIVE/OWNER|MEMBER`；
   - `INVITE(room≠null)` / `APPLY`：锁 Room，重读空位，加入；`member_count+1`；满员转 FULL 并清理该寝其余 open 请求；
@@ -704,17 +716,19 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
 
 | 状态 | initiator 可做 | target 可做 | 说明 |
 | --- | --- | --- | --- |
-| `PENDING` | cancel | accept / decline | 目标不能 cancel（403） |
-| `CONTACT_SHARED` | cancel / confirm | cancel / confirm | 双方可结束了解 |
+| `PENDING` | cancel / pre-approve | accept / decline | 目标不能 cancel（403）；`pre-approve` 让发起人先记下同意，对方 accept 时直接成立 |
+| `CONTACT_SHARED` | cancel / confirm | cancel / confirm | 双方可结束了解；对方已确认时本人 confirm 直接成立 |
 | `CONFIRMING` | cancel（若自己未确认）/ confirm（若自己未确认） | 同左 | 已确认方不能再 confirm；可 cancel |
 | `CONFIRMED` | 无 | 无 | 终态 |
 | `DECLINED/CANCELLED/EXPIRED` | 无 | 无 | 终态 |
 
-`actions` 字段（服务端按当前用户算）：
+`actions` 字段（服务端按当前用户算，6 键）：
 
 ```json
-{"can_accept":false,"can_decline":false,"can_cancel":true,"can_confirm":true,"can_view_contact":true}
+{"can_accept":false,"can_decline":false,"can_cancel":true,"can_confirm":true,"can_view_contact":true,"can_pre_approve":false}
 ```
+
+- `can_pre_approve`（2026-11-19 起）：仅发起人、`PENDING`、且尚未预确认时为 `true`。
 
 ### 5.2 寝室
 
@@ -771,7 +785,7 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
   "closed_by": null,
   "close_reason": "",
   "contact": {"qq":"12345678","wechat":"achi_0926","unlocked":true},
-  "actions": {"can_accept":false,"can_decline":false,"can_cancel":true,"can_confirm":true,"can_view_contact":true},
+  "actions": {"can_accept":false,"can_decline":false,"can_cancel":true,"can_confirm":true,"can_view_contact":true,"can_pre_approve":false},
   "version": 1
 }
 ```
@@ -788,6 +802,7 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
   "dims": {"a":{"sleep":90,"clean":80,"social":40,"noise":70,"boundary":80,"spend":50},"b":{"sleep":85,"clean":85,"social":35,"noise":65,"boundary":75,"spend":55},"dim_score":{"sleep":95,"clean":95,"social":95,"noise":95,"boundary":95,"spend":95}},
   "reasons": ["你们的作息节奏很接近，早睡/早起冲突会少很多。","整洁习惯高度一致，公共区摩擦会少很多。","都有「猫派」标签，容易聊到一起。"],
   "conflicts": [],
+  "risks": [{"code":"sleep_gap","text":"作息相差 4 小时"}],
   "version_warning": null
 }
 ```
@@ -926,3 +941,4 @@ query：`role=inbox|sent`（默认 inbox）、`status=PENDING|CONTACT_SHARED|CON
 | v1.4-draft | 2026-11-15 | 终态寝室只读详情：`members` 返回全部历史成员（最终名单）；非终态仍仅 ACTIVE |
 | v1.5-draft | 2026-11-15 | `ConnectionRequest.expires_at` 可空；`CONFIRMED` 为 `null`，同步 03 §1.6/OpenAPI |
 | v1.6-draft | 2026-11-16 | M6 修复（P2-1/WK-03）：新增只读 `GET /api/timewindow`（`TimeWindowStatus`，本地时区显式例外），同步 §1.8/§3.13/§4.7 与 OpenAPI |
+

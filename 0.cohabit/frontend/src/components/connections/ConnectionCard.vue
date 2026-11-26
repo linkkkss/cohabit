@@ -7,14 +7,17 @@ import { formatDateTime } from '@/components/rooms/roomFormat'
 import ConnectionActions from './ConnectionActions.vue'
 import DeadlineText from './DeadlineText.vue'
 import {
+  closeReasonText,
   connectionCounterpart,
   connectionPath,
   connectionStatusClass,
   connectionStatusLabel,
   connectionSummaryLine,
   connectionTypeLabel,
+  counterpartLastActive,
   counterpartMeta,
   isTerminalStatus,
+  lastActiveText,
 } from './connectionFormat'
 
 /**
@@ -36,6 +39,7 @@ const emit = defineEmits<{
   (event: 'decline'): void
   (event: 'confirm'): void
   (event: 'cancel'): void
+  (event: 'pre-approve'): void
 }>()
 
 const counterpart = computed(() => connectionCounterpart(props.connection))
@@ -62,6 +66,20 @@ const showContactHint = computed(
 const cardLabel = computed(
   () => `${name.value} 的${typeLabel.value}，${statusLabel.value}，打开详情`,
 )
+/** 关闭原因：只在终态出现，让列表也能回答“这次为什么没成”。 */
+const closeText = computed(() =>
+  closed.value ? closeReasonText(props.connection.close_reason) : '',
+)
+/** 发起人已经先确认时，提示“点一下就成”。 */
+const preApproveHint = computed(() => {
+  if (!open.value || !props.connection.initiator_pre_approved) {
+    return ''
+  }
+  return props.connection.direction === 'sent' ? '你已先同意' : '对方已先同意'
+})
+const otherActive = computed(() =>
+  open.value ? lastActiveText(counterpartLastActive(props.connection)) : '',
+)
 </script>
 
 <template>
@@ -82,6 +100,9 @@ const cardLabel = computed(
           <DeadlineText v-if="open" :expires-at="connection.expires_at" />
           <span v-else-if="contactSharedAt" class="request-time">互见于 {{ contactSharedAt }}</span>
           <span v-if="showContactHint" class="request-contact-hint">联系方式已解锁</span>
+          <span v-if="preApproveHint" class="request-contact-hint pre-hint">{{ preApproveHint }}</span>
+          <span v-if="closeText" class="request-close-reason">{{ closeText }}</span>
+          <span v-else-if="otherActive" class="request-time">{{ otherActive }}</span>
         </div>
       </div>
     </RouterLink>
@@ -94,6 +115,7 @@ const cardLabel = computed(
       @decline="emit('decline')"
       @confirm="emit('confirm')"
       @cancel="emit('cancel')"
+      @pre-approve="emit('pre-approve')"
     />
   </article>
 </template>
@@ -199,6 +221,19 @@ const cardLabel = computed(
   border-radius: 999px;
   padding: 2px 8px;
   color: var(--coral-dark);
+  font-size: 11px;
+}
+
+.pre-hint {
+  border-color: color-mix(in srgb, var(--sage, #4f8a6d) 40%, var(--line));
+  color: var(--sage-dark, #2f6149);
+}
+
+.request-close-reason {
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #f1f1ef;
+  color: #555;
   font-size: 11px;
 }
 

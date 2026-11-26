@@ -10,6 +10,7 @@ import {
   connectionErrorMessage,
   fetchConnection,
   isConnectionOpen,
+  preApproveConnection,
   type ConnectionDetail,
 } from '@/api/connections'
 import AvatarBadge from '@/components/common/AvatarBadge.vue'
@@ -23,6 +24,7 @@ import DeadlineText from './DeadlineText.vue'
 import SecurityActions from '@/components/security/SecurityActions.vue'
 import {
   CONNECTION_PHASES,
+  closeReasonAdvice,
   closeReasonText,
   connectionCounterpart,
   connectionDeadline,
@@ -31,8 +33,10 @@ import {
   connectionStatusLabel,
   connectionSummaryLine,
   connectionTypeLabel,
+  counterpartLastActive,
   counterpartMeta,
   isTerminalStatus,
+  lastActiveText,
 } from './connectionFormat'
 
 /**
@@ -47,8 +51,8 @@ const props = defineProps<{
 }>()
 
 type ViewState = 'loading' | 'ready' | 'error' | 'missing'
-type ActionKind = 'accept' | 'decline' | 'cancel' | 'confirm'
-type DialogKind = 'confirm' | 'cancel' | 'decline'
+type ActionKind = 'accept' | 'decline' | 'cancel' | 'confirm' | 'pre-approve'
+type DialogKind = 'confirm' | 'cancel' | 'decline' | 'pre-approve'
 
 const router = useRouter()
 const state = ref<ViewState>('loading')
@@ -90,6 +94,25 @@ const closeText = computed(() =>
 )
 const closedByText = computed(() => connection.value?.closed_by?.nickname || '系统')
 
+/** 关闭态的原因卡：CONFIRMED 不算失败，只在没成的时候出现。 */
+const showFailCard = computed(
+  () => Boolean(connection.value && closed.value && connection.value.status !== 'CONFIRMED'),
+)
+const failAdvice = computed(() =>
+  connection.value ? closeReasonAdvice(connection.value.close_reason) : '',
+)
+const otherLastActiveText = computed(() => {
+  const current = connection.value
+  if (!current) {
+    return ''
+  }
+  return lastActiveText(counterpartLastActive(current))
+})
+const otherPreApproved = computed(() => Boolean(connection.value?.initiator_pre_approved))
+const preApproveBadge = computed(() =>
+  connection.value?.direction === 'sent' ? '你已先同意' : '对方已先同意',
+)
+
 const isSent = computed(() => connection.value?.direction === 'sent')
 const myConfirmAt = computed(() => {
   const current = connection.value
@@ -123,7 +146,13 @@ const hasActions = computed(() => {
   if (!actions) {
     return false
   }
-  return actions.can_accept || actions.can_decline || actions.can_confirm || actions.can_cancel
+  return (
+    actions.can_accept ||
+    actions.can_decline ||
+    actions.can_confirm ||
+    actions.can_cancel ||
+    actions.can_pre_approve
+  )
 })
 
 const statusHint = computed(() => {
@@ -132,12 +161,19 @@ const statusHint = computed(() => {
     return ''
   }
   if (current.status === 'PENDING') {
+    if (otherPreApproved.value) {
+      return current.direction === 'inbox'
+        ? '对方已经先同意了。你点一次“同意”就会直接成立组寝，不用等对方在线。'
+        : '你已经先同意了。对方上线后点一次“同意”就会直接成立组寝。'
+    }
     return current.direction === 'inbox'
-      ? '对方在等你的回应。同意后双方才会看到联系方式。'
-      : '已发出，等对方回应；在对方同意前，联系方式不会出现。'
+      ? '对方在等你的回应。同意后双方才会看到联系方式；也可以先“我先同意”，等对方上线再说。'
+      : '已发出，等对方回应。你也可以先“同意”，对方上线后点一次就能直接成立组寝。'
   }
   if (current.status === 'CONTACT_SHARED') {
-    return '联系方式已互见。确认要一起住后，双方各确认一次即组寝成立。'
+    return otherPreApproved.value
+      ? '对方已经先确认过了，你这一下确认就会直接成立组寝。'
+      : '联系方式已互见。确认要一起住后，双方各确认一次即组寝成立。'
   }
   if (current.status === 'CONFIRMING') {
     return '一方已确认，另一方还需要确认；在最终确认前，任何一方仍可结束了解。'
@@ -155,6 +191,9 @@ const dialogTitle = computed(() => {
   if (dialog.value === 'cancel') {
     return connection.value?.status === 'PENDING' ? '撤回这个请求？' : '结束这段了解？'
   }
+  if (dialog.value === 'pre-approve') {
+    return '先记下你的同意？'
+  }
   return '拒绝这个请求？'
 })
 
@@ -169,6 +208,9 @@ const dialogDescription = computed(() => {
       ? '撤回后对方会收到一条系统通知，你们之后仍然可以重新发起。'
       : '关闭后联系方式会立即隐藏，对方会收到一条系统通知。'
   }
+  if (dialog.value === 'pre-approve') {
+    return '你不需要等对方在线：先把“同意”记下来，对方上线后点一次“同意”，组寝就直接成立。在此之前你仍可以撤回。'
+  }
   return '拒绝后请求会关闭，对方会收到通知。你们之后仍可以重新发起。'
 })
 
@@ -178,6 +220,9 @@ const dialogConfirmLabel = computed(() => {
   }
   if (dialog.value === 'cancel') {
     return connection.value?.status === 'PENDING' ? '撤回请求' : '结束了解'
+  }
+  if (dialog.value === 'pre-approve') {
+    return '好，我先同意'
   }
   return '拒绝请求'
 })
@@ -250,6 +295,9 @@ async function runAction(kind: ActionKind): Promise<void> {
     } else if (kind === 'cancel') {
       connection.value = await cancelConnection(current.id)
       actionInfo.value = '请求已关闭，联系方式已立即隐藏。'
+    } else if (kind === 'pre-approve') {
+      connection.value = await preApproveConnection(current.id)
+      actionInfo.value = '已先同意。对方上线后点一次“同意”，组寝就会直接成立。'
     } else {
       const updated = await confirmConnection(current.id)
       connection.value = updated
@@ -292,7 +340,6 @@ function onAction(kind: ActionKind): void {
   }
   dialog.value = kind
 }
-
 function closeDialog(): void {
   if (!busyAction.value) {
     dialog.value = ''
@@ -302,7 +349,12 @@ function closeDialog(): void {
 function confirmDialog(): void {
   const kind = dialog.value
   dialog.value = ''
-  if (kind === 'confirm' || kind === 'decline' || kind === 'cancel') {
+  if (
+    kind === 'confirm' ||
+    kind === 'decline' ||
+    kind === 'cancel' ||
+    kind === 'pre-approve'
+  ) {
     void runAction(kind)
   }
 }
@@ -359,6 +411,9 @@ onBeforeUnmount(() => {
           <p class="detail-sub">{{ typeLabel }} · {{ summaryLine }}</p>
           <div class="detail-badges">
             <span class="status detail-status" :class="statusClass">{{ statusLabel }}</span>
+            <span v-if="otherPreApproved && open" class="status detail-status status-pre">
+              {{ preApproveBadge }}
+            </span>
             <DeadlineText v-if="open" :expires-at="connection.expires_at" />
           </div>
         </div>
@@ -380,6 +435,7 @@ onBeforeUnmount(() => {
                 <p class="eyebrow">{{ isSent ? '你邀请的人' : '发来请求的人' }}</p>
                 <h2 class="person-name">{{ otherName }}</h2>
                 <p v-if="otherMeta" class="fine">{{ otherMeta }}</p>
+                <p v-if="open" class="fine active-line">最近活跃：{{ otherLastActiveText }}</p>
               </div>
             </div>
 
@@ -453,6 +509,19 @@ onBeforeUnmount(() => {
             </dl>
           </section>
 
+          <section v-if="showFailCard" class="detail-card fail-card">
+            <p class="eyebrow">Retry</p>
+            <h2 class="section-title">这次为什么没成</h2>
+            <p class="fail-reason">{{ closeText || '请求已关闭' }}</p>
+            <p class="fail-advice">{{ failAdvice }}</p>
+            <div class="fail-actions">
+              <RouterLink class="btn btn-small btn-primary" to="/match">重新匹配</RouterLink>
+              <RouterLink class="btn btn-small btn-ghost" to="/connections">
+                看看其他请求
+              </RouterLink>
+            </div>
+          </section>
+
           <section v-if="connection.room" class="detail-card room-summary">
             <p class="eyebrow">Room</p>
             <h2 class="section-title">{{ connection.room.title || '寝室' }}</h2>
@@ -486,7 +555,15 @@ onBeforeUnmount(() => {
               @decline="onAction('decline')"
               @confirm="onAction('confirm')"
               @cancel="onAction('cancel')"
+              @pre-approve="onAction('pre-approve')"
             />
+            <RouterLink
+              v-if="showFailCard"
+              class="btn btn-small btn-primary aside-retry"
+              to="/match"
+            >
+              重新匹配
+            </RouterLink>
             <p v-else class="fine aside-done">
               {{ closed ? '请求已结束，没有可执行的操作。' : '暂时没有需要你操作的动作。' }}
             </p>
@@ -606,6 +683,50 @@ onBeforeUnmount(() => {
 .status-closed {
   background: #f1f1ef;
   color: #555;
+}
+
+.status-pre {
+  background: #ecf4ec;
+  color: #356b3b;
+}
+
+.active-line {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.fail-card {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  border-color: color-mix(in srgb, var(--coral) 35%, var(--line));
+  background: color-mix(in srgb, var(--sand) 30%, var(--paper));
+}
+
+.fail-reason {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fail-advice {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.fail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.aside-retry {
+  width: 100%;
+  justify-content: center;
 }
 
 .detail-grid {

@@ -3,10 +3,12 @@ import { computed } from 'vue'
 import type { MatchScore } from '@/api/matching'
 import AvatarBadge from '@/components/common/AvatarBadge.vue'
 import TagChips from '@/components/common/TagChips.vue'
+import { lastActiveText } from '@/components/connections/connectionFormat'
 
 /**
  * 匹配卡片（docs/05 §7.2 /match）：分数 → 昵称+meta → 首条自述/标签 → 操作。
  * 有红线冲突的候选照样展示，只加一个琥珀色角标（docs/03 §5.4）。
+ * 风险摘要（作息差/整洁差）直接写在卡上，用户不必点开问卷也能判断要不要接触。
  */
 const props = defineProps<{
   match: MatchScore
@@ -23,6 +25,12 @@ const meta = computed(() => {
   const parts = [gender, target.grade ? `${target.grade} 年级` : '', target.college, target.major]
   return parts.filter((part) => Boolean(part)).join(' · ')
 })
+
+/** 红线冲突已有角标，这里只渲染其余风险，避免同一句话出现两次。 */
+const riskChips = computed(() =>
+  (props.match.risks ?? []).filter((risk) => risk.code !== 'red_line'),
+)
+const activeText = computed(() => lastActiveText(props.match.target.last_active_at))
 </script>
 
 <template>
@@ -41,6 +49,12 @@ const meta = computed(() => {
 
     <p v-if="match.target.headline" class="headline">{{ match.target.headline }}</p>
 
+    <p v-if="riskChips.length" class="risk-row">
+      <span v-for="risk in riskChips" :key="risk.code + risk.text" class="risk-chip">
+        {{ risk.text }}
+      </span>
+    </p>
+
     <TagChips
       :tags="match.target.tags"
       :max="4"
@@ -55,6 +69,7 @@ const meta = computed(() => {
       <span v-if="match.version_warning" class="badge-warn">
         <span class="badge-dot" aria-hidden="true"></span>问卷版本不同
       </span>
+      <span class="fine active-hint">最近活跃：{{ activeText }}</span>
       <button type="button" class="btn btn-small btn-ghost match-open" @click="emit('open', match)">
         查看详情
       </button>
@@ -131,5 +146,26 @@ const meta = computed(() => {
 
 .match-open {
   margin-left: auto;
+}
+
+.risk-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.risk-chip {
+  border: 1px solid color-mix(in srgb, var(--coral) 30%, var(--line));
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: color-mix(in srgb, var(--coral) 5%, var(--paper));
+  color: var(--coral-dark);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.active-hint {
+  color: var(--muted);
 }
 </style>

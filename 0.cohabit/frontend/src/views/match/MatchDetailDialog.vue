@@ -12,6 +12,7 @@ import NoticeBar from '@/components/common/NoticeBar.vue'
 import TagChips from '@/components/common/TagChips.vue'
 import DimCompare from '@/components/match/DimCompare.vue'
 import SecurityActions from '@/components/security/SecurityActions.vue'
+import { lastActiveText } from '@/components/connections/connectionFormat'
 
 /**
  * 匹配详情（docs/05 §7.2、docs/07 2:50–3:20）：用原生 `<dialog>`，Esc 关闭、
@@ -76,6 +77,12 @@ const meta = computed(() => {
     .filter((part) => Boolean(part))
     .join(' · ')
 })
+
+/** 红线冲突在下方有独立区块，这里只列其余风险，作为一句话摘要。 */
+const riskChips = computed(() =>
+  (props.match?.risks ?? []).filter((risk) => risk.code !== 'red_line'),
+)
+const activeText = computed(() => lastActiveText(props.match?.target.last_active_at ?? null))
 
 const promptItems = computed(() => {
   const user = publicUser.value
@@ -210,6 +217,7 @@ onMounted(() => {
         <div class="dialog-id">
           <h2 id="match-dialog-title">{{ match.target.nickname }}</h2>
           <p class="candidate-meta">{{ meta }}</p>
+          <p class="fine active-line">最近活跃：{{ activeText }}</p>
         </div>
         <div class="dialog-score">
           <span class="score">{{ match.score }}</span>
@@ -219,6 +227,12 @@ onMounted(() => {
 
       <p v-if="match.target.headline" class="headline">{{ match.target.headline }}</p>
       <TagChips :tags="match.target.tags" empty-text="对方还没有选标签。" />
+
+      <p v-if="riskChips.length" class="risk-row">
+        <span v-for="risk in riskChips" :key="risk.code + risk.text" class="risk-chip">
+          {{ risk.text }}
+        </span>
+      </p>
 
       <NoticeBar v-if="reportNotice" tone="info">
         {{ reportNotice }}
@@ -450,6 +464,28 @@ onMounted(() => {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.risk-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.risk-chip {
+  border: 1px solid color-mix(in srgb, var(--coral) 30%, var(--line));
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: color-mix(in srgb, var(--coral) 5%, var(--paper));
+  color: var(--coral-dark);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.active-line {
+  margin: 2px 0 0;
+  color: var(--muted);
 }
 
 .reasons li {

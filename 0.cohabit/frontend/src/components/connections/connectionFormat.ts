@@ -115,6 +115,70 @@ export function closeReasonText(reason: string): string {
   return CLOSE_REASON_TEXT[reason] ?? ''
 }
 
+/** 失败后的“下一步”建议：解释这次为什么没成，避免用户卡在原地。 */
+const CLOSE_REASON_ADVICE: Record<string, string> = {
+  DECLINED: '对方这次不打算组寝。看看其他候选人，或者过一段时间再联系。',
+  INITIATOR_CANCEL: '发起人撤回了这条请求。你可以主动发起新的组寝邀请。',
+  END_UNDERSTANDING: '你们结束了这次了解。换一个更合适的人试试。',
+  TIMEOUT: '双方没能及时确认。新的请求会重新计时，这次可以早点确认。',
+  FULL: '寝室在你确认之前已经满员了。可以申请其他寝室，或者重新找室友。',
+  LOCKED: '寝室已经锁定，不再接收新成员。去找正在招人的寝室吧。',
+  ROOM_DISSOLVED: '寝室解散了，这次组寝没法继续。重新匹配一个新寝室。',
+  ARCHIVED: '组寝窗口已经结束，本学院暂时不能继续组寝。',
+  USER_DISABLED: '对方账号已停用，这条请求无法继续。重新匹配其他候选人。',
+  RATE_LIMITED: '短时间内请求太多，被系统关闭了。稍后再试。',
+  ADMIN: '管理员关闭了这条请求。如有疑问可以联系管理员。',
+  BLOCKED: '你们之间已经拉黑，无法继续组寝。',
+  AUTO_CANCELLED: '你或对方已经加入了其他寝室，这条请求自动关闭了。',
+}
+
+export function closeReasonAdvice(reason: string): string {
+  return CLOSE_REASON_ADVICE[reason] ?? '这次组寝没能成立，重新匹配一个更合适的室友。'
+}
+
+/**
+ * 对方最近活跃：`刚刚活跃` / `12 分钟前活跃` / `3 天前活跃` / `暂无活跃记录`。
+ * 只做展示，不参与任何状态判断。
+ */
+export function lastActiveText(value: string | null): string {
+  const date = parseDate(value)
+  if (!date) {
+    return '暂无活跃记录'
+  }
+  const diff = Date.now() - date.getTime()
+  if (diff < 0) {
+    return '刚刚活跃'
+  }
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 2) {
+    return '刚刚活跃'
+  }
+  if (minutes < 60) {
+    return `${minutes} 分钟前活跃`
+  }
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) {
+    return `${hours} 小时前活跃`
+  }
+  const days = Math.floor(hours / 24)
+  if (days < 30) {
+    return `${days} 天前活跃`
+  }
+  return '超过 30 天没有活跃'
+}
+
+/** 取“对方”的最近活跃时间（发起人看目标，目标看发起人）。 */
+export function counterpartLastActive(
+  connection: Pick<
+    ConnectionSummary,
+    'direction' | 'initiator_last_active_at' | 'target_last_active_at'
+  >,
+): string | null {
+  return connection.direction === 'sent'
+    ? connection.target_last_active_at
+    : connection.initiator_last_active_at
+}
+
 /** PENDING 的发起人撤回；已互见之后的任一方是“结束了解”。 */
 export function cancelLabel(status: ConnectionStatus): string {
   return status === 'PENDING' ? '撤回请求' : '结束了解'

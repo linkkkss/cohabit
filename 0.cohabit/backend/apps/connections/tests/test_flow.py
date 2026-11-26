@@ -104,6 +104,7 @@ def test_detail_pending_hides_contact():
         "can_decline": False,
         "can_cancel": True,
         "can_confirm": False,
+        "can_pre_approve": True,
         "can_view_contact": False,
     }
 
@@ -339,6 +340,7 @@ def test_actions_matrix_for_target_pending():
         "can_decline": True,
         "can_cancel": False,
         "can_confirm": False,
+        "can_pre_approve": False,
         "can_view_contact": False,
     }
 

@@ -35,6 +35,11 @@ urlpatterns = [
         name="confirm",
     ),
     re_path(
+        r"^connections/(?P<connection_id>\d+)/pre-approve/?$",
+        views.ConnectionPreApproveView.as_view(),
+        name="pre-approve",
+    ),
+    re_path(
         r"^connections/(?P<connection_id>\d+)/?$",
         views.ConnectionDetailView.as_view(),
         name="detail",

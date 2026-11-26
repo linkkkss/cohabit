@@ -587,7 +587,7 @@ def accept_request(
     request_id: str = "",
     at: datetime | None = None,
 ) -> ConnectionRequest:
-    """目标接受请求：``PENDING → CONTACT_SHARED``（docs/02 §3.3）。"""
+    """目标接受请求：``PENDING → CONTACT_SHARED``；发起人已预确认则直接成立（docs/02 §3.3、§3.5.5）。"""
     now = _now(at)
     row = _fetch_participant_request(actor, request_pk)
     if row.target_id != actor.pk:
@@ -651,6 +651,12 @@ def accept_request(
             )
     if expired:
         raise RequestExpired()
+    if (
+        current.status == ConnectionRequest.Status.CONTACT_SHARED
+        and current.initiator_confirm_at is not None
+    ):
+        # 发起人已预先确认：被邀请方点“同意”就等于双方都确认，直接成立组寝。
+        return confirm_request(actor, current.pk, request_id=request_id, at=at)[1]
     return current
 
 
@@ -765,6 +771,62 @@ def cancel_request(
                 meta={"reason": str(reason)},
                 request_id=request_id,
             )
+    if expired:
+        raise RequestExpired()
+    return current
+
+
+# --------------------------------------------------------------------------- #
+# pre-approve（发起人先确认）
+# --------------------------------------------------------------------------- #
+def pre_approve_request(
+    actor: Any,
+    request_pk: Any,
+    *,
+    request_id: str = "",
+    at: datetime | None = None,
+) -> ConnectionRequest:
+    """发起人在 ``PENDING`` 阶段先确认，对方同意时点一次即可成立（docs/02 §3.5.5）。
+
+    只写 ``initiator_confirm_at``，状态仍是 ``PENDING``：对方上线后点“同意”
+    就同时补齐自己的确认，直接进入 ``CONFIRMED``。幂等，重复调用不重复审计。
+    """
+    now = _now(at)
+    row = _fetch_participant_request(actor, request_pk)
+    if row.initiator_id != actor.pk:
+        raise ActionForbidden("只有发起人可以预先确认")
+
+    expired = False
+    with transaction.atomic():
+        require_locked_window(row.initiator.college, at=now)
+        lock_users([row.initiator_id, row.target_id])
+        current = _relock_request(row.pk)
+        if _expire_if_due(current, now, request_id=request_id):
+            expired = True
+        else:
+            _assert_pending(current)
+            _assert_account_active(current.initiator)
+            _assert_account_active(current.target)
+            if _is_blocked(current.initiator_id, current.target_id):
+                raise Blocked()
+            if current.initiator_confirm_at is None:
+                current.initiator_confirm_at = now
+                current.version += 1
+                current.save(
+                    update_fields=[
+                        "initiator_confirm_at",
+                        "version",
+                        "updated_at",
+                    ]
+                )
+                write_audit(
+                    "CONNECTION_PRE_APPROVED",
+                    "connection",
+                    current.pk,
+                    actor=actor,
+                    meta={"status": str(current.status)},
+                    request_id=request_id,
+                )
     if expired:
         raise RequestExpired()
     return current
@@ -936,9 +998,17 @@ def confirm_request(
             elif current.room_id is None:
                 raise InvalidType("请求数据异常，请重新发起")
 
-            if current.status == ConnectionRequest.Status.CONTACT_SHARED:
-                if current.initiator_confirm_at or current.target_confirm_at:
-                    raise InvalidState("DATA_ANOMALY", "请求状态异常，请重新发起")
+            other_confirmed_at = (
+                current.target_confirm_at
+                if actor.pk == current.initiator_id
+                else current.initiator_confirm_at
+            )
+            # 对方已预先确认（pre-approve）时，本次确认不必再等对方上线，
+            # 直接走成立分支（docs/02 §3.5.5）。
+            if (
+                current.status == ConnectionRequest.Status.CONTACT_SHARED
+                and other_confirmed_at is None
+            ):
                 own_field = _mark_confirmed(current, actor, now)
                 current.status = ConnectionRequest.Status.CONFIRMING
                 current.expires_at = now + CONFIRM_TTL

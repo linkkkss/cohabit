@@ -11,3 +11,4 @@ dist/
 .pgpw
 .env
 .walkthrough/
+node_modules.orig/
