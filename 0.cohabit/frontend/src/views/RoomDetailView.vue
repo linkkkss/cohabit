@@ -462,6 +462,10 @@ onMounted(() => {
               </button>
             </div>
 
+            <p class="fine actions-hint">
+              把链接发给同学：对方不用登录就能看到寝室概况、标签和成员昵称，联系方式不会出现在分享页。
+            </p>
+
             <div v-if="shareState === 'failed' && shareUrl" class="share-fallback">
               <p class="fine">浏览器没让写入剪贴板，手动复制这个链接：</p>
               <input
