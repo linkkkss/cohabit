@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>Cohabit logo sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root { --paper:#fff2df; --raised:#fffaf1; --ink:#363636; --coral:#ff8a00; --cream:#fff4e2; }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:52px 56px; background:var(--paper);
+    background-image:
+      linear-gradient(to right, rgba(54,54,54,.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(54,54,54,.045) 1px, transparent 1px);
+    background-size:56px 56px;
+    font-family:"Space Grotesk","Noto Sans SC",sans-serif; color:var(--ink);
+  }
+  .top { display:grid; grid-template-columns: 1.1fr .9fr; gap:56px; align-items:start; }
+  .lockup { display:flex; align-items:center; gap:22px; }
+  .word { font-size:64px; font-weight:600; letter-spacing:-.045em; line-height:1; }
+  .word i { font-style:normal; color:var(--coral); }
+  .tagline { margin:20px 0 0; font-size:12px; letter-spacing:.18em; text-transform:uppercase; opacity:.55; }
+  .sizes { display:flex; align-items:flex-end; gap:26px; margin-top:44px; }
+  .sizes figure { margin:0; display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .sizes figcaption { font-size:9.5px; letter-spacing:.14em; opacity:.5; }
+  .panel { border:2px solid var(--ink); background:var(--raised); box-shadow:7px 7px 0 var(--ink); padding:24px 26px; }
+  .panel.dark { background:var(--ink); color:var(--paper); }
+  .panel h3 { margin:0 0 12px; font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; opacity:.55; font-weight:600; }
+  .panel ul { margin:0; padding-left:16px; font-size:11.5px; line-height:1.9; }
+  .panel li::marker { color:var(--coral); }
+  .row { display:flex; align-items:center; gap:16px; }
+  .mono { font-family:ui-monospace,"Cascadia Mono",monospace; font-size:10.5px; letter-spacing:.04em; }
+  .swatch { display:flex; gap:0; margin-top:18px; border:2px solid var(--ink); }
+  .swatch div { flex:1; height:52px; }
+  .swatch span { display:block; font-size:9px; letter-spacing:.08em; padding:6px 8px; color:var(--ink); background:var(--raised); border-top:2px solid var(--ink); }
+  .foot { margin-top:44px; display:flex; justify-content:space-between; font-size:10px; letter-spacing:.14em; text-transform:uppercase; opacity:.45; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div>
+    <div class="lockup">
+      <svg width="132" height="132" viewBox="0 0 48 48">
+        <rect x="1" y="1" width="46" height="46" rx="2" fill="#ff8a00" stroke="#363636" stroke-width="2"/>
+        <path d="M35 15H17V33H35" fill="none" stroke="#fff4e2" stroke-width="8"/>
+      </svg>
+      <div>
+        <div class="word">Cohabit<i>.</i></div>
+        <div class="tagline">一起住，先把话说清楚</div>
+      </div>
+    </div>
+
+    <div class="sizes">
+      <figure><svg width="64" height="64" viewBox="0 0 48 48"><rect x="1" y="1" width="46" height="46" rx="2" fill="#ff8a00" stroke="#363636" stroke-width="2"/><path d="M35 15H17V33H35" fill="none" stroke="#fff4e2" stroke-width="8"/></svg><figcaption>64</figcaption></figure>
+      <figure><svg width="48" height="48" viewBox="0 0 48 48"><rect x="1" y="1" width="46" height="46" rx="2" fill="#ff8a00" stroke="#363636" stroke-width="2"/><path d="M35 15H17V33H35" fill="none" stroke="#fff4e2" stroke-width="8"/></svg><figcaption>48</figcaption></figure>
+      <figure><svg width="36" height="36" viewBox="0 0 48 48"><rect x="1" y="1" width="46" height="46" rx="2" fill="#ff8a00" stroke="#363636" stroke-width="2"/><path d="M35 15H17V33H35" fill="none" stroke="#fff4e2" stroke-width="8"/></svg><figcaption>36</figcaption></figure>
+      <figure><svg width="24" height="24" viewBox="0 0 48 48"><rect x="1" y="1" width="46" height="46" rx="2" fill="#ff8a00" stroke="#363636" stroke-width="2"/><path d="M35 15H17V33H35" fill="none" stroke="#fff4e2" stroke-width="8"/></svg><figcaption>24</figcaption></figure>
+      <figure><svg width="16" height="16" viewBox="0 0 48 48"><rect x="1" y="1" width="46" height="46" rx="2" fill="#ff8a00" stroke="#363636" stroke-width="2"/><path d="M35 15H17V33H35" fill="none" stroke="#fff4e2" stroke-width="8"/></svg><figcaption>16</figcaption></figure>
+    </div>
+
+    <div class="panel dark" style="margin-top:34px; display:flex; align-items:center; gap:18px; width:max-content;">
+      <svg width="52" height="52" viewBox="0 0 48 48"><rect x="1" y="1" width="46" height="46" rx="2" fill="#363636" stroke="#fff2df" stroke-width="2"/><path d="M35 15H17V33H35" fill="none" stroke="#ff8a00" stroke-width="8"/></svg>
+      <div>
+        <div style="font-size:24px;font-weight:600;letter-spacing:-.035em;line-height:1">Cohabit<i style="font-style:normal;color:#ff8a00">.</i></div>
+        <div style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.55;margin-top:6px">inverse</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h3>Mark construction</h3>
+      <ul>
+        <li>48 × 48 grid, 2px ink frame, 2px corner</li>
+        <li>C is a floor plan: arms at 17–35, stroke 8</li>
+        <li>Opening 10 units — reads as a doorway</li>
+        <li>Clear space ≥ 1/4 tile on all sides</li>
+        <li>Minimum size 16px (favicon)</li>
+      </ul>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h3>Palette</h3>
+      <div class="swatch">
+        <div style="background:#ff8a00"><span>#FF8A00</span></div>
+        <div style="background:#363636"><span>#363636</span></div>
+        <div style="background:#fff2df"><span>#FFF2DF</span></div>
+        <div style="background:#fff4e2"><span>#FFF4E2</span></div>
+      </div>
+      <ul style="margin-top:16px">
+        <li>Tile: Hermès orange, ink frame</li>
+        <li>C: cream on orange · orange on ink</li>
+        <li>Wordmark: Space Grotesk 600, −0.035em</li>
+        <li>Full stop always orange</li>
+      </ul>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h3>Don’t</h3>
+      <ul>
+        <li>No gradients, bevels, glows, or outlines</li>
+        <li>No rounded or rotated tile</li>
+        <li>No C opening narrower than 10 units</li>
+        <li>No third colour in the mark</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="foot"><span>cohabit · brand sheet</span><span>2026 · bauhaus / cream · charcoal · orange</span></div>
+</body>
+</html>
