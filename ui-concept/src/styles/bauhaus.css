@@ -1,0 +1,421 @@
+/* ------------------------------------------------------------------
+   包豪斯覆盖层
+   用 #app 前缀压过 SFC 的 scoped 选择器，集中管理几何、描边与硬投影。
+   主页面的细化样式在 HomeView.vue 里，这里管广场 / 匹配 / 画像。
+------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------- 广场 */
+#app .stage__hint,
+#app .stage__tag,
+#app .stage__count {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+#app .pcard__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+#app .panel {
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 8px 8px 0 rgba(54, 54, 54, 0.12);
+}
+
+#app .panel__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+#app .panel__headline {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+#app .panel__tag {
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+}
+
+#app .pdim__track {
+  height: 7px;
+  border: 1.5px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+}
+
+#app .pdim__fill {
+  border-radius: 0;
+  background: var(--coral);
+}
+
+#app .panel__dims,
+#app .panel__redline,
+#app .panel__actions {
+  border-color: var(--ink);
+}
+
+#app .filter {
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+#app .toolbar__reload {
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+}
+
+#app .plaza__title,
+#app .plaza__note-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* ---------------------------------------------------------------- 匹配 */
+#app .match__title {
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+#app .match__stamp {
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper-raised);
+  font-weight: 600;
+}
+
+#app .match__stage {
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper-raised);
+  box-shadow: 8px 8px 0 rgba(54, 54, 54, 0.1);
+}
+
+#app .match__score-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+#app .match__ring {
+  stroke: var(--line);
+}
+
+#app .match__ring-arc {
+  stroke: var(--coral);
+  stroke-width: 3;
+}
+
+#app .reason {
+  border-top: 1.5px solid var(--ink);
+}
+
+#app .reason__track {
+  height: 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: 0;
+}
+
+#app .reason__track > span {
+  border-radius: 0;
+}
+
+#app .how__num,
+#app .how h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- 画像 */
+#app .identity__title {
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+#app .identity__todo li {
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper-raised);
+}
+
+#app .stat,
+#app .stat-stat {
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: var(--paper-raised);
+  box-shadow: 6px 6px 0 rgba(54, 54, 54, 0.1);
+}
+
+#app .stat__title,
+#app .public__title,
+#app .private__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+#app .dim__track {
+  height: 7px;
+  border: 1.5px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+}
+
+#app .dim__fill {
+  border-radius: 0;
+  background: var(--coral);
+}
+
+#app .public__label {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+#app .visibility__pill {
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+}
+
+/* ---------------------------------------------------------------- 细节 */
+#app .plaza__aside {
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: var(--paper-raised);
+  box-shadow: 6px 6px 0 rgba(54, 54, 54, 0.1);
+}
+
+#app .redlines,
+#app .contact {
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: var(--paper-raised);
+}
+
+#app .tag {
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper-raised);
+}
+
+#app .redline-list li {
+  border-bottom-color: var(--line-strong);
+}
+
+#app .contact__masked {
+  border: 1.5px dashed var(--ink);
+  border-radius: 2px;
+}
+
+#app .block-state {
+  border-radius: 2px;
+  border-width: 1.5px;
+}
+
+#app .match__stamp {
+  letter-spacing: 0.06em;
+}
+
+#app .pcard__match,
+#app .pcard__foot small {
+  letter-spacing: 0.08em;
+}
+
+#app .panel__score {
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper-raised);
+}
+
+#app .panel__score svg circle:first-of-type {
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+#app .panel__score svg circle:last-of-type {
+  stroke: var(--coral);
+  stroke-width: 3;
+}
+
+#app .match__ring-arc {
+  stroke-width: 3;
+}
+
+#app .stat__ring svg circle:first-of-type {
+  stroke: var(--line);
+}
+
+#app .stat__ring svg circle:last-of-type,
+#app .stat__arc {
+  stroke: var(--coral);
+  stroke-width: 3;
+}
+
+/* ------------------------------------------------- 广场转盘卡片（全局，槽位内容） */
+/* --------------------------------------------------------------- pcard */
+.pcard {
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: inherit;
+  background: linear-gradient(165deg, #fff8ec 0%, #f7ead6 55%, #efdcc0 100%);
+  box-shadow:
+    0 34px 60px -34px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+}
+
+.pcard.is-left {
+  background: linear-gradient(165deg, #4c4c4c 0%, #3a3a3a 55%, #2c2c2c 100%);
+  box-shadow:
+    0 34px 60px -34px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.pcard.is-right {
+  background: linear-gradient(165deg, #ffa32b 0%, #ff8a00 55%, #e97a00 100%);
+  box-shadow:
+    0 34px 60px -34px rgba(120, 60, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.pcard__art {
+  position: relative;
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding-top: 10px;
+  overflow: hidden;
+}
+
+.pcard__rings {
+  position: absolute;
+  width: 84%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--ink) 16%, transparent);
+  opacity: 0.7;
+}
+
+.pcard.is-left .pcard__rings {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.pcard.is-right .pcard__rings {
+  border-color: rgba(43, 27, 8, 0.22);
+}
+
+.pcard__initial {
+  position: relative;
+  z-index: 1;
+  font-family: "Songti SC", "Noto Serif SC", "SimSun", serif;
+  font-size: 86px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.pcard.is-left .pcard__initial {
+  color: var(--coral);
+}
+
+.pcard.is-right .pcard__initial {
+  color: #2b1b08;
+}
+
+.pcard__score {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.92);
+  color: var(--ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.45);
+}
+
+.pcard.is-left .pcard__score {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--coral);
+  box-shadow: none;
+}
+
+.pcard.is-right .pcard__score {
+  background: #fff6e8;
+  color: #2b1b08;
+}
+
+.pcard__score em {
+  font-size: 9px;
+  font-style: normal;
+  opacity: 0.7;
+}
+
+.pcard__match {
+  position: absolute;
+  top: 20px;
+  left: 16px;
+  z-index: 1;
+  color: color-mix(in srgb, var(--ink) 46%, transparent);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.pcard.is-left .pcard__match {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.pcard.is-right .pcard__match {
+  color: rgba(43, 27, 8, 0.55);
+}
+
+.pcard:not(.is-front) .pcard__match,
+.pcard:not(.is-front) .pcard__foot {
+  opacity: 0;
+}
+
+.pcard__score,
+.pcard__match,
+.pcard__foot {
+  transition: opacity 460ms var(--ease-out);
+}
+
+.pcard__foot {
+  position: relative;
+  padding: 14px 18px 18px;
+  background: linear-gradient(180deg, rgba(255, 248, 236, 0) 0%, rgba(255, 248, 236, 0.9) 42%, #fff6e8 100%);
+}
+
+.pcard.is-left .pcard__foot {
+  background: linear-gradient(180deg, rgba(60, 60, 60, 0) 0%, rgba(50, 50, 50, 0.9) 42%, #333 100%);
+}
+
+.pcard.is-right .pcard__foot {
+  background: linear-gradient(180deg, rgba(255, 138, 0, 0) 0%, rgba(255, 138, 0, 0.9) 42%, #f28100 100%);
+}
+
+.pcard__name {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.pcard__college {
+  margin: 4px 0 0;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+

@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8" />
+<title>UI design · Cohabit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+@page { size: A4; margin: 16mm 15mm 18mm; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  margin: 0; color: #2f2f2f; background: #fff;
+  font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 10.2pt; line-height: 1.72;
+}
+.cover {
+  min-height: 240mm; display: flex; flex-direction: column; justify-content: center;
+  padding: 0 6mm; break-after: page;
+}
+.cover .badge {
+  display: inline-block; align-self: flex-start; border: 1.5px solid #363636; border-radius: 2px;
+  padding: 4px 9px; font-family: "Space Grotesk", sans-serif; font-size: 8pt;
+  font-weight: 700; letter-spacing: .22em; background: #fffaf1;
+}
+.cover h1 {
+  font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-size: 34pt; font-weight: 700;
+  letter-spacing: -.02em; margin: 16px 0 6px; line-height: 1.05; color: #363636;
+}
+.cover .sub { margin: 0 0 4px; font-size: 11pt; color: #6b6156; }
+.cover .accent { width: 64px; height: 4px; background: #ff8a00; margin: 16px 0 22px; }
+.cover img { width: 100%; border: 1.5px solid #363636; border-radius: 3px; }
+.cover .meta {
+  margin-top: 14px; font-family: "Space Grotesk", sans-serif; font-size: 7.6pt;
+  letter-spacing: .16em; color: #8a7c6b; display: flex; justify-content: space-between;
+}
+.content { break-before: page; }
+h1 { font-size: 24pt; }
+h2 {
+  font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-size: 16pt; font-weight: 700;
+  color: #363636; margin: 26px 0 10px; padding-bottom: 8px; border-bottom: 2px solid #363636;
+  break-after: avoid;
+}
+.content > h2:first-of-type { margin-top: 0; }
+h2#_1, h2[id="0"] { break-before: page; margin-top: 0; }
+.toc-note { color: #8a7c6b; font-size: 9pt; margin: 0 0 6px; letter-spacing: .02em; }
+h3 { font-size: 11.6pt; margin: 16px 0 6px; color: #363636; break-after: avoid; }
+p { margin: 7px 0; }
+strong { color: #232323; }
+em { color: #6b6156; }
+a { color: #a85a00; text-decoration: none; }
+code {
+  font-family: "Space Grotesk", "Consolas", monospace; font-size: 8.8pt;
+  background: #f6ecdc; border: 1px solid #e9d6b9; border-radius: 2px; padding: 0 3px;
+  color: #7a4a12; white-space: nowrap;
+}
+pre {
+  background: #f8f2e7; border: 1.5px solid #363636; border-radius: 3px;
+  padding: 9px 11px; overflow: hidden; break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; white-space: pre-wrap; }
+td code { white-space: normal; word-break: break-all; font-size: 8pt; }
+td { font-size: 8.6pt; }
+blockquote {
+  margin: 10px 0; padding: 8px 12px; border-left: 4px solid #ff8a00;
+  background: #fff8ec; color: #5b5249; font-size: 9.6pt;
+}
+table {
+  width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9pt;
+  break-inside: avoid;
+}
+th, td { border: 1px solid #cbb79a; padding: 5px 7px; vertical-align: top; }
+th { background: #f6ecdc; font-weight: 700; text-align: left; color: #363636; }
+tr:nth-child(even) td { background: #fdf8f0; }
+img {
+  display: block; max-width: 100%; margin: 10px 0 4px;
+  border: 1.5px solid #363636; border-radius: 3px; break-inside: avoid;
+}
+hr { border: 0; border-top: 1px solid #e0cfb4; margin: 14px 0; }
+ul, ol { margin: 6px 0 6px 18px; padding: 0; }
+li { margin: 3px 0; }
+li > p { margin: 2px 0; }
+.toc { margin: 6px 0 0; }
+.toc ul { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 4px 0; }
+.toc a { color: #363636; }
+.toc ul ul { display: none; }
+.toc > ul > li:nth-child(1), .toc > ul > li:nth-child(2) { display: none; }
+</style>
+</head><body>
+<section class="cover">
+  <span class="badge">COHABIT · UI DESIGN</span>
+  <h1>UI 设计规范</h1>
+  <p class="sub">校园组寝产品概念站 · Vue 3 + Vite · 四页</p>
+  <div class="accent"></div>
+  <img src="ui-design/home.png" alt="首页" />
+  <div class="meta"><span>CREAM / CHARCOAL / HERMES ORANGE</span><span>2026 · v1.0</span></div>
+</section>
+<main class="content"><h2 id="_2">目录</h2>
+<p class="toc-note">11 节 · 阅读约 20 分钟</p>
+<div class="toc">
+<ul>
+<li><a href="#_1">预览</a></li>
+<li><a href="#_2">目录</a></li>
+<li><a href="#0">0. 一句话定位</a></li>
+<li><a href="#1">1. 设计原则（五条，决定所有细节）</a></li>
+<li><a href="#2">2. 色彩系统</a></li>
+<li><a href="#3">3. 字体与排版</a></li>
+<li><a href="#4">4. 栅格、间距与几何</a></li>
+<li><a href="#5">5. 组件规格</a></li>
+<li><a href="#6">6. 动效系统</a></li>
+<li><a href="#7">7. 页面布局规格</a></li>
+<li><a href="#8">8. 响应式</a></li>
+<li><a href="#9">9. 无障碍与性能</a></li>
+<li><a href="#10-react-bits">10. 组件来源 · React Bits</a></li>
+</ul>
+</div>
+<hr />
+<h2 id="_1">预览</h2>
+<table>
+<thead>
+<tr>
+<th>入场</th>
+<th>广场</th>
+<th>今日匹配</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="入场动画" src="ui-design/entry.png" /></td>
+<td><img alt="广场转盘" src="ui-design/plaza.png" /></td>
+<td><img alt="物理吊牌" src="ui-design/match.png" /></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>我的画像</th>
+<th>Tokens &amp; Elements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="我的画像" src="ui-design/profile.png" /></td>
+<td><img alt="设计 token" src="ui-design/spec.png" /></td>
+</tr>
+</tbody>
+</table>
+<h2 id="0">0. 一句话定位</h2>
+<p><strong>用包豪斯的硬边几何，讲一个关于“边界”的温和产品。</strong></p>
+<p>米白纸面 + 炭黑墨线 + 爱马仕橙，三色；网格纸打底；2px 描边 + 硬投影代替柔和阴影；大字排版；动效一律“快进慢停”；唯一的柔性元素是广场的橙色光和会晃的吊牌。</p>
+<p><img alt="入场首帧：Logo + 两行标题" src="ui-design/entry.png" /></p>
+<p><em>首帧只留 Logo 与标题，卡片四周是更深的米色网格，<code>— SCROLL</code> 提示可以下滑。</em></p>
+<hr />
+<h2 id="1">1. 设计原则（五条，决定所有细节）</h2>
+<ol>
+<li><strong>纸与墨</strong>：页面是纸（米白 + 56px 网格），元素是印上去的墨块（2px 黑边、实色填充、硬投影）。不用磨砂、不用多层阴影、不用渐变按钮。</li>
+<li><strong>三色纪律</strong>：橙只做“注意力”，墨只做“结构”，米白只做“呼吸”。一屏里橙色面积不超过 15%。</li>
+<li><strong>硬边 + 一处柔光</strong>：所有卡片、按钮、输入框都是 2–4px 圆角；只有转盘舞台允许大面积橙色柔光，形成唯一的高光区域。</li>
+<li><strong>动效是位移，不是特效</strong>：元素只做 8–26px 的短位移 + 透明度，时长 180–860ms，曲线 <code>cubic-bezier(0.16, 1, 0.3, 1)</code>；不做弹跳（除磁吸按钮的弹簧）。</li>
+<li><strong>信息像标签</strong>：所有小标题都是“带框的标签”（eyebrow），所有数字都用大字号 + 小单位，读起来像印刷品。</li>
+</ol>
+<hr />
+<h2 id="2">2. 色彩系统</h2>
+<h3 id="21-token">2.1 Token 表</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>值</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--paper</code></td>
+<td><code>#FFF2DF</code></td>
+<td>页面底色（白粉）</td>
+</tr>
+<tr>
+<td><code>--paper-raised</code></td>
+<td><code>#FFFAF1</code></td>
+<td>卡片、面板、按钮底</td>
+</tr>
+<tr>
+<td><code>--paper-deep</code></td>
+<td><code>#F8E7CF</code></td>
+<td>次级区块、入口动画外框</td>
+</tr>
+<tr>
+<td><code>--ink</code></td>
+<td><code>#363636</code></td>
+<td>正文、描边、深色块（深灰）</td>
+</tr>
+<tr>
+<td><code>--ink-soft</code></td>
+<td><code>#4B4B4B</code></td>
+<td>深色块内的次级文字</td>
+</tr>
+<tr>
+<td><code>--line</code></td>
+<td><code>#E9D6B9</code></td>
+<td>分隔线、浅描边</td>
+</tr>
+<tr>
+<td><code>--line-soft</code></td>
+<td><code>#F2E3CB</code></td>
+<td>更浅的分隔</td>
+</tr>
+<tr>
+<td><code>--line-strong</code></td>
+<td><code>#D9C1A0</code></td>
+<td>虚线环、强调分隔</td>
+</tr>
+<tr>
+<td><code>--coral</code></td>
+<td><code>#FF8A00</code></td>
+<td>主强调（爱马仕橙）：按钮、强调字、图表</td>
+</tr>
+<tr>
+<td><code>--coral-dark</code></td>
+<td><code>#A85A00</code></td>
+<td>小字橙（保证对比度）、焦点环</td>
+</tr>
+<tr>
+<td><code>--coral-soft</code></td>
+<td><code>#FFE4C2</code></td>
+<td>橙色底、标签底</td>
+</tr>
+<tr>
+<td><code>--amber</code></td>
+<td><code>#FFB45E</code></td>
+<td>深色底上的橙（吊牌数字、深色卡）</td>
+</tr>
+<tr>
+<td><code>--muted</code></td>
+<td><code>#746A5C</code></td>
+<td>次级文字（4.7:1）</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="配色与元素规范" src="ui-design/spec.png" /></p>
+<p><em>配色、字号阶梯、按钮三态、几何规则一览。</em></p>
+<h3 id="22">2.2 用色规则</h3>
+<ul>
+<li><strong>橙底黑字</strong>：橙 <code>#FF8A00</code> 上的文字一律用 <code>#2B1B08</code>（对比 7:1）。白字在橙上只有 2.1:1，禁止。</li>
+<li><strong>小字橙</strong>：小于 14px 的橙色文字改用 <code>--coral-dark</code>（4.6:1）；大标题、数字、图标才用纯橙。</li>
+<li><strong>深色块</strong>：<code>--ink</code> 底 + 米白字；深色块里的橙用 <code>--amber</code>（更亮），不用 <code>--coral</code>。</li>
+<li><strong>禁用</strong>：粉紫渐变、玻璃高光按钮、彩色阴影（阴影只用墨色低透明度）。</li>
+</ul>
+<h3 id="23">2.3 对比度基线</h3>
+<table>
+<thead>
+<tr>
+<th>组合</th>
+<th>比值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>#363636</code> on <code>#FFF2DF</code></td>
+<td>≈ 10.4:1</td>
+</tr>
+<tr>
+<td><code>#746A5C</code> on <code>#FFF2DF</code></td>
+<td>≈ 4.7:1</td>
+</tr>
+<tr>
+<td><code>#A85A00</code> on <code>#FFF2DF</code></td>
+<td>≈ 4.6:1</td>
+</tr>
+<tr>
+<td><code>#2B1B08</code> on <code>#FF8A00</code></td>
+<td>≈ 7.0:1</td>
+</tr>
+<tr>
+<td><code>#FFF4E2</code> on <code>#363636</code></td>
+<td>≈ 10.9:1</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3">3. 字体与排版</h2>
+<h3 id="31">3.1 字体</h3>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>字体栈</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>展示 / UI / 数字</td>
+<td><code>"Space Grotesk", "Noto Sans SC", "PingFang SC", sans-serif</code></td>
+</tr>
+<tr>
+<td>正文</td>
+<td><code>"Inter", "Noto Sans SC", "PingFang SC", sans-serif</code></td>
+</tr>
+<tr>
+<td>大号汉字（画像 initials）</td>
+<td><code>"Songti SC", "Noto Serif SC", "SimSun", serif</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Space Grotesk 负责几何感（数字、英文标签、按钮），中文回落到 Noto Sans SC；仅“画像大字”保留宋体，制造一处书法对比。</p>
+</blockquote>
+<h3 id="32">3.2 字号阶梯</h3>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hero 标题 <code>.display</code></td>
+<td><code>clamp(40px, 6.6vw, 72px)</code> / 700 / <code>-0.02em</code> / <code>0.96</code></td>
+</tr>
+<tr>
+<td>页面 H1（广场/匹配/画像）</td>
+<td><code>clamp(31px, 4.2vw, 51px)</code> / 700 / <code>-0.03em</code></td>
+</tr>
+<tr>
+<td>区块 H2</td>
+<td><code>clamp(28px, 4vw, 40px)</code> / 700 / <code>-0.02em</code> / <code>1.05</code></td>
+</tr>
+<tr>
+<td>卡片标题</td>
+<td>17–22px / 600–700</td>
+</tr>
+<tr>
+<td>正文</td>
+<td>15px / 1.65</td>
+</tr>
+<tr>
+<td>Lede</td>
+<td>16px / 1.8 / 最大 540px</td>
+</tr>
+<tr>
+<td>标签 eyebrow</td>
+<td>10.5px / 700 / <code>0.2em</code> / 大写</td>
+</tr>
+<tr>
+<td>辅助说明 <code>.fine</code></td>
+<td>12px / 1.6 / <code>--muted</code></td>
+</tr>
+<tr>
+<td>数字</td>
+<td>600–700，单位降一级并缩小（<code>92%</code> → 92 大、% 小）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33">3.3 排版细节</h3>
+<ul>
+<li>中文标题<strong>不使用</strong>伪斜体；强调靠颜色（橙）和字重，不靠 italic。</li>
+<li>英文标签统一大写 + 宽字距（<code>0.14–0.2em</code>），像印刷标签。</li>
+<li>行高：标题 0.96–1.05，正文 1.65–1.85；行长控制在 34–42 个汉字。</li>
+<li>数字与单位之间不断行；百分比用 <code>&lt;em&gt;</code> 缩小到 55%。</li>
+</ul>
+<hr />
+<h2 id="4">4. 栅格、间距与几何</h2>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>容器</td>
+<td><code>min(1120px, 100% - 40px)</code>，移动端 20px 边距</td>
+</tr>
+<tr>
+<td>网格纸</td>
+<td>56×56px，线 <code>rgba(54,54,54,.045)</code>，<code>background-attachment: fixed</code></td>
+</tr>
+<tr>
+<td>主间距刻度</td>
+<td>4 / 8 / 12 / 16 / 24 / 28 / 40 / 56 / 72</td>
+</tr>
+<tr>
+<td>区块间距</td>
+<td>桌面 72px，移动 44–56px</td>
+</tr>
+<tr>
+<td>圆角</td>
+<td>按钮/标签 2px；卡片/面板 4px；画像卡 18–22px；舞台 26px；胶囊 999px</td>
+</tr>
+<tr>
+<td>描边</td>
+<td>结构 2px <code>--ink</code>；标签 1.5px；虚线环 1.5px dashed</td>
+</tr>
+<tr>
+<td>硬投影</td>
+<td>小 <code>4px 4px 0</code>；大 <code>6px 6px 0</code>；卡片软影 <code>6px 6px 0 rgba(54,54,54,.08)</code></td>
+</tr>
+<tr>
+<td>焦点环</td>
+<td><code>2px solid var(--coral-dark)</code>，offset 2px</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5">5. 组件规格</h2>
+<h3 id="51">5.1 按钮（三型 + 磁吸）</h3>
+<p><strong>基础 <code>.btn</code></strong><br />
+- 高 46px / 小号 38px，左右 22px / 16px；字号 14 / 700，字距 <code>0.02em</code><br />
+- 边框 2px 墨；圆角 2px；硬投影 <code>4px 4px 0</code><br />
+- hover：<code>translate(-2px,-2px)</code> + 投影变 <code>6px 6px 0</code>，180ms<br />
+- active：<code>translate(2px,2px)</code> + 无投影，90ms<br />
+- disabled：<code>opacity .55</code>，无位移</p>
+<p><strong>变体</strong><br />
+| 变体 | 底 | 字 | 场景 |<br />
+|---|---|---|---|<br />
+| <code>primary</code> | <code>#FF8A00</code> | <code>#2B1B08</code> | 主行动（开始完善画像 / 打招呼） |<br />
+| <code>dark</code> | <code>#363636</code> | <code>#FFF2DF</code> | 深色区块内的主行动 |<br />
+| <code>ghost</code> | 透明 | 墨 | 次级行动（先看看广场） |</p>
+<p><strong>磁吸（<code>MagneticButton</code> / <code>Magnet</code>）</strong><br />
+- 外层占位不动，内层 <code>translate</code> 跟随指针：<code>offset = (指针 - 中心) / strength × 衰减</code><br />
+- 默认 <code>padding 90–110</code>、<code>strength 2.4–3</code>、<code>maxOffset 12–18</code>、<code>scale 1.02</code><br />
+- 弹簧 <code>stiffness 170 / damping 16 / mass 1</code>；离开后回弹<br />
+- 只在 <code>pointer: fine</code> 与 <code>prefers-reduced-motion: no-preference</code> 时启用<br />
+- 命中区域比按钮大 90px，形成“靠近就被吸”的手感</p>
+<h3 id="52-pillnav">5.2 导航（PillNav 药丸导航）</h3>
+<ul>
+<li>结构：<code>nav &gt; bar(2px 墨边 + 4px 硬投影) &gt; track &gt; item</code>；底为实色 <code>--paper</code>（非玻璃）</li>
+<li>尺寸：高 44px，item 左右 18px，字号 14 / 600</li>
+<li>当前项：实心墨色胶囊，文字 <code>--paper</code>；滑块用 transform + width 过渡（220–420ms 弹簧）</li>
+<li>徽标：方形 2px 墨框 + 橙底 + 深色数字（<code>2</code>、<code>9+</code>）</li>
+<li>折叠：≤900px 收成“菜单”按钮（黑边胶囊 + 汉堡），展开为<strong>全宽面板</strong>（<code>fixed; top:76px; left/right:14px</code>），行高 48px，当前行橙底</li>
+<li>键盘：Tab 可达，Esc 关闭，展开时焦点进入面板</li>
+</ul>
+<h3 id="53">5.3 页头 / 页脚</h3>
+<ul>
+<li>页头 sticky，高 76px（≤900 为 68px）；底部 2px 墨线；实色 <code>--paper</code>，不用模糊</li>
+<li>左：36px 方形 Logo（橙底、2px 墨框、<code>3px 3px 0</code> 投影、C 字标），+ “Cohabit” 20px</li>
+<li>中：药丸导航，绝对居中（<code>grid: 1fr auto 1fr</code>）</li>
+<li>右：40px 方形图标按钮（搜索、通知带橙点）、用户胶囊（32px 头像 + 姓名 + 完成度）</li>
+<li>页脚：顶部 2px 墨线；左侧 40px “Cohabit.” 字标 + 一句 slogan + <code>UI CONCEPT · CREAM / CHARCOAL / HERMES ORANGE</code>；右侧三列链接（产品 / 关于 / 设计）；底部版权行</li>
+</ul>
+<h3 id="54-profilecard">5.4 个人信息卡片（ProfileCard）</h3>
+<ul>
+<li>外框 2px 墨边、圆角 20px、实色 <code>--paper-raised</code>、硬投影 <code>8px 10px 0 rgba(54,54,54,.14)</code></li>
+<li>内部：10px 内边距 → 画像区（4:5）→ 1.5px 顶线 → 信息带（姓名 22px / 学院 13px）→ 底部（handle + 状态点 + 联系胶囊）</li>
+<li>画像区：橙色圆盘（<code>--coral</code>，2px 墨边）+ 虚线环 + 宋体大字（96px）；或自定义 <code>#portrait</code> 插槽</li>
+<li>交互：指针进入时 3D 倾斜（最大 9°）+ 画像 10px 视差 + 高光跟随；离开回正</li>
+<li>深色版：<code>--ink</code> 底、米白 2px 描边、米白文字、橙色大字</li>
+</ul>
+<h3 id="55">5.5 广场转盘卡（三色吊牌式立卡）</h3>
+<ul>
+<li>卡 250×330，圆角 22px，无描边，软投影</li>
+<li><strong>正面</strong>：米白 <code>linear-gradient(165deg,#FFF8EC,#F7EAD6 55%,#EFDCC0)</code></li>
+<li><strong>左侧</strong>：炭黑 <code>linear-gradient(165deg,#4C4C4C,#3A3A3A 55%,#2C2C2C)</code>，大字橙</li>
+<li><strong>右侧</strong>：橙 <code>linear-gradient(165deg,#FFA32B,#FF8A00 55%,#E97A00)</code>，大字近黑</li>
+<li>卡面元素：左上“匹配度” 9.5px、右上白色胶囊 <code>92%</code>、中间宋体大字 86px、底部姓名 17px + 学院 11.5px</li>
+<li>侧面卡只显示大字与 score 胶囊；正面卡全信息</li>
+<li>颜色由“环上偏移”决定：正面偏移 0；逆时针半圈为左（炭黑），顺时针为右（橙）</li>
+</ul>
+<h3 id="56-swingtag">5.6 物理吊牌（SwingTag，今日匹配）</h3>
+<ul>
+<li>结构：支点钉 → 织带 26×78 → 金属夹 54×16 → 卡片（打孔 18px）</li>
+<li>卡片 244 宽，圆角 18px，2px 墨边，深色版 <code>#3D3A35 → #211F1C</code></li>
+<li>内容：<code>TODAY · 今日匹配</code> 9.5px 宽字距、<code>92%</code> 胶囊、橙色宋体大字、姓名/学院、结束线</li>
+<li>物理：<code>θ'' = -kθ - cθ'</code>，<code>k = 46</code>，<code>c = 3.4</code>；拖动灵敏度 <code>0.3°/px</code>，摆角限制 ±52°</li>
+<li>松手按角速度继续摆动，约 3 次回摆后停（实测 33.6° → 24.4° → −7.7° → −0.4°）</li>
+<li>光标 <code>grab / grabbing</code>；<code>prefers-reduced-motion</code> 下不启动</li>
+</ul>
+<h3 id="57">5.7 标签 / 表单 / 骨架</h3>
+<ul>
+<li><code>.chip</code>：1.5px 墨边、2px 圆角、4×10px 内距、12px/600；选中态用橙底</li>
+<li><code>.eyebrow</code>：带框标签；深色底上改为透明底 + 米白框 + 米白字</li>
+<li>输入：2px 墨边、2px 圆角、46px 高、focus 时橙底 2px 内阴影</li>
+<li>骨架：<code>index.html</code> 内联首屏骨架（导航胶囊、标题条、橙色 CTA 块、画像块、三张卡），斜向流光 1.9s；列表骨架 2.2s，<code>prefers-reduced-motion</code> 关闭</li>
+</ul>
+<hr />
+<h2 id="6">6. 动效系统</h2>
+<h3 id="61">6.1 曲线与时长</h3>
+<table>
+<thead>
+<tr>
+<th>用途</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主缓动</td>
+<td><code>cubic-bezier(0.16, 1, 0.3, 1)</code>（快进慢停）</td>
+</tr>
+<tr>
+<td>次级</td>
+<td><code>cubic-bezier(0.22, 1, 0.36, 1)</code></td>
+</tr>
+<tr>
+<td>弹簧（磁吸/悬停）</td>
+<td><code>cubic-bezier(0.34, 1.56, 0.64, 1)</code></td>
+</tr>
+<tr>
+<td>微交互</td>
+<td>90–180ms</td>
+</tr>
+<tr>
+<td>常规过渡</td>
+<td>200–300ms</td>
+</tr>
+<tr>
+<td>大块入场</td>
+<td>560–860ms</td>
+</tr>
+<tr>
+<td>路由切换</td>
+<td>≤200ms</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-scrollexpand">6.2 进场动画（ScrollExpand 式）</h3>
+<p><strong>结构</strong>：<code>.entry</code>（170vh 轨道）→ <code>.entry__stage</code>（sticky，top 76，高 <code>100vh-76</code>）→ <code>.entry__frame</code> → <code>.entry__poster</code>。</p>
+<p><img alt="展开中段：卡片向四周撑开" src="ui-design/entry-mid.png" /></p>
+<p><em>滚动约半屏时，卡片从 44%×62% 撑到接近满屏，标题随展开略微放大。</em></p>
+<p><strong>首帧</strong>：纸面网格 + 居中标题卡（44%×62% 视口），卡内自上而下：<code>COHABIT · 校园组寝</code> 标签 → 48 网格 Logo → 两行标题（第二行橙色）→ 一句副文案；卡片底部 18px 处一条 <code>— SCROLL 向下滚动，进入网站</code>。</p>
+<p><strong>滚动映射</strong>（<code>raw = scrollY / innerHeight</code>，<code>p = clamp01(raw / 0.85)</code>）：</p>
+<pre><code>e   = smooth(0, 0.84, p)            // 展开进度
+ix  = 28 × (1 - e)  %               // 左右内缩
+iy  = 19 × (1 - e)  %               // 上下内缩
+fr  = 3  × (1 - e)  px              // 圆角
+edge = 1 - smooth(0.72, 0.84, p)×1.4  // 描边淡出
+post = smooth(0.9, 1.15, raw)        // 标题卡内容淡出
+</code></pre>
+<ul>
+<li>卡片内容同步 <code>scale(1 + 0.16e)</code>，随展开略微放大</li>
+<li><code>post</code> 阶段内容上移 18px 并淡出，避免与主页 Hero 标题“撞车”</li>
+<li>进度用 0.12 低通滤波平滑，滚轮一格不会跳</li>
+<li>动画期间页头 <code>opacity: 0</code>（保留占位，不跳版）</li>
+</ul>
+<p><strong>降级</strong>：首次以外、≤900px、<code>prefers-reduced-motion</code> → 不渲染入场层，直接主页。</p>
+<h3 id="63-scroll-reveal">6.3 滚动揭示（Scroll Reveal）</h3>
+<ul>
+<li>IntersectionObserver：<code>threshold 0.08</code>，<code>rootMargin 0 0 -6% 0</code></li>
+<li>初始 <code>opacity: 0; translateY(26px)</code>；进入后 560ms / 860ms 淡入上移</li>
+<li>同容器内按顺序加 55ms 延迟（最多 260ms），形成瀑布</li>
+<li>只触发一次；路由切换 / 列表筛选后由 MutationObserver 自动接管</li>
+<li>变体：<code>data-reveal="left|right|scale"</code></li>
+</ul>
+<h3 id="64">6.4 文本动画</h3>
+<ul>
+<li><strong>ShinyText</strong>：标题第二行“再住一起。”用一条 100° 的浅橙光带扫过（<code>#FF8A00</code> 底 + <code>#FFC4A0</code> 光），4.4s 一轮，光带宽度 14%，柔化 0.86，辉光 0.1，<code>background-clip: text</code></li>
+<li><strong>ScrollFloat</strong>：收尾 CTA 的标题按词上浮（float / words / stagger 35ms / ease-out）</li>
+<li><strong>标题遮罩上升</strong>：广场、匹配 H1 用 <code>overflow:hidden</code> + <code>translateY(108%) → 0</code> 1000ms，第二行延迟 90ms</li>
+<li><strong>数字递增</strong>：分数、统计用 <code>requestAnimationFrame</code> 从 0 缓动到目标值（600–900ms）</li>
+</ul>
+<h3 id="65-circularcarousel">6.5 转盘（CircularCarousel）</h3>
+<ul>
+<li>圆柱排列：<code>step = 360/n</code>，<code>R = max((cardW+gap)/(2sin(π/n)), cardW×0.72)</code></li>
+<li>相机 <code>translateZ(-R) rotateX(-7°)</code>；每张卡 <code>rotateY(base) translateZ(R)</code></li>
+<li>自动适配：投影四角求包围盒，<code>fit = min(1, 0.88w/2maxX, 0.86h/2maxY)</code>，写回 <code>perspective</code> 与 <code>scale</code></li>
+<li>运动：rAF 弹簧，<code>k=120, c=2√k</code>；拖拽 <code>perPixel = 180/(πR·fit)</code>；松手吸附最近卡</li>
+<li>自动漂移 4°/s，悬停暂停；方向键 / 回车 / 点侧卡切换；背面 <code>visibility:hidden</code></li>
+<li>卡片深度：<code>((1-cosθ)/2)^0.8 × depthFade</code> 映射到遮罩透明度</li>
+</ul>
+<h3 id="66">6.6 其他交互</h3>
+<table>
+<thead>
+<tr>
+<th>交互</th>
+<th>反馈</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>磁吸按钮</td>
+<td>跟随指针 + 放大 1.02，离开回弹</td>
+</tr>
+<tr>
+<td>卡片悬停</td>
+<td>上移 2px + 投影加深（列表卡）；画像卡 3D 倾斜</td>
+</tr>
+<tr>
+<td>导航项</td>
+<td>胶囊滑块 220–420ms 弹性移动；悬停文字变墨</td>
+</tr>
+<tr>
+<td>打招呼</td>
+<td>按钮文案 <code>打招呼 → 已打招呼</code>，插入到“已邀请”列表</td>
+</tr>
+<tr>
+<td>补全画像</td>
+<td>点击 todo → 进度 +4%，提示“已保存，画像完整度更新了”</td>
+</tr>
+<tr>
+<td>筛选</td>
+<td>结果数变化 + 列表淡入；空态给“放宽条件”入口</td>
+</tr>
+<tr>
+<td>路由切换</td>
+<td>页面淡入 180ms；滚动回顶</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7">7. 页面布局规格</h2>
+<h3 id="71">7.1 <code>/</code> 首页</h3>
+<ol>
+<li><strong>入场</strong>（170vh，见 6.2）</li>
+<li><strong>Hero</strong>：左 1.12fr / 右 0.88fr；左侧标签 → H1（两行，第二行橙）→ lede → 两个磁吸 CTA → 三条隐私说明；右侧画像卡（旋转 −2.4°）+ 92% 浮标 + 23:30 浮标 + <code>less small talk</code> 贴纸 + 橙色光晕底</li>
+<li><strong>数据条</strong>：4 格（6 维度 / 3 分钟 / 2 次确认 / 0 公开联系方式），2px 墨线上下、1.5px 分隔</li>
+<li><strong>三步流程</strong>：3 张卡（2px 墨边 + 硬投影），右下角 16% 淡橙大数字</li>
+<li><strong>画像说明</strong>：<code>--paper-deep</code> 区块，左侧 3 条编号说明，右侧深色画像卡（周同学）</li>
+<li><strong>引用</strong>：居中大字 + 橙色引号</li>
+</ol>
+<p><img alt="首页" src="ui-design/home.png" /></p>
+<p><em>首页：左文右卡，橙色圆盘与 92% 浮标是第一视觉落点。</em></p>
+<ol start="7">
+<li><strong>收尾 CTA</strong>：墨色横幅 + 橙色描边圆 + ScrollFloat 标题 + 两个按钮</li>
+<li><strong>页脚</strong></li>
+</ol>
+<h3 id="72-plaza">7.2 <code>/plaza</code> 广场</h3>
+<ul>
+<li>头部：标签 + H1（两行遮罩上升）+ lede；右侧 12/4/0 三格数据</li>
+<li>工具栏：5 个方形筛选 chip + 计数 + 重新排序</li>
+<li>主区：左 1.52fr 舞台（深色 + 橙色顶光 + 转盘 + 44px 圆箭头 + <code>01/06</code>）/ 右 0.8fr 详情面板（姓名、92% 环、一句话、标签、六维条、红线、打招呼）</li>
+<li>底部：<code>A QUIETER WAY</code> 三条规则 + 深色 CTA</li>
+</ul>
+<p><img alt="广场" src="ui-design/plaza.png" /></p>
+<p><em>广场：橙色顶光舞台 + 三色卡片（正面奶油 / 左侧炭黑 / 右侧橙）。</em></p>
+<ul>
+<li>响应式：≤1080 上下堆叠；≤620 筛选行横向滚动、卡宽自适应</li>
+</ul>
+<h3 id="73-match">7.3 <code>/match</code> 今日匹配</h3>
+<ul>
+<li>头部：标签 + H1 + lede + 右侧 <code>MATCH · 11/25 · 92%</code> 胶囊</li>
+<li>主面板：2px 墨框 + 硬投影；三列 = “你”画像卡 / 匹配环（92% + FIT）/ “对方”物理吊牌</li>
+<li>三条理由：编号 + 标题 + 说明 + 右侧双轨对照条（你=橙，对方=墨）</li>
+<li>行动区：发起邀请（橙）/ 我想先看看广场（ghost）/ 今天先不看了；发出后整块换成“邀请已发出”</li>
+<li>下方：<code>HOW IT WORKS</code> 三张卡（六维加权 / 红线一票否决 / 双向确认）</li>
+</ul>
+<p><img alt="今日匹配" src="ui-design/match.png" /></p>
+<p><em>今日匹配：左侧“你”、中间匹配环、右侧可拖拽的物理吊牌。</em></p>
+<h3 id="74-profile">7.4 <code>/profile</code> 我的画像</h3>
+<ul>
+<li>身份区：左标题 + lede + 主 CTA + 两条待补全 todo；右画像卡 + 卡下隐私说明</li>
+<li>统计带：78% 环 + 文案 / 62 / 12 / 2 三格</li>
+<li>六维画像：双列条形，数字右对齐，说明小字</li>
+<li>公开内容：标签 + 三条问答（三列，1px 分隔线）</li>
+<li>只有自己可见：红线卡（编号列表）+ 联系方式卡（虚框 + 锁）+ 可见性切换行</li>
+<li>收尾：说明 + “看看谁和你对得上”</li>
+</ul>
+<p><img alt="我的画像" src="ui-design/profile.png" /></p>
+<p><em>我的画像：身份区、完成度、六维条、公开内容与隐私开关。</em></p>
+<hr />
+<h2 id="8">8. 响应式</h2>
+<table>
+<thead>
+<tr>
+<th>断点</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>≤1080</td>
+<td>广场/匹配主区改为上下堆叠；详情面板通栏</td>
+</tr>
+<tr>
+<td>≤980</td>
+<td>画像页身份区堆叠，卡在前</td>
+</tr>
+<tr>
+<td>≤900</td>
+<td>导航折叠为“菜单”；页头 68px；隐藏品牌名与用户文字</td>
+</tr>
+<tr>
+<td>≤820</td>
+<td>首页预览区标签改为静态、CTA 标题缩小</td>
+</tr>
+<tr>
+<td>≤620</td>
+<td>单列；H1 clamp 下限 31px；筛选横向滚动；表格改纵向</td>
+</tr>
+<tr>
+<td>≤420</td>
+<td>图标按钮 36px；卡片内距收紧</td>
+</tr>
+</tbody>
+</table>
+<p>所有断点检查：无横向溢出（<code>scrollWidth === clientWidth</code>），触控目标 ≥40px。</p>
+<hr />
+<h2 id="9">9. 无障碍与性能</h2>
+<ul>
+<li>语义：<code>header / nav / main / section / footer</code>；<code>main</code> 有 <code>tabindex="-1"</code>，路由后聚焦</li>
+<li>键盘：转盘 ←/→、导航 Esc、按钮可见焦点环（橙深色 2px）</li>
+<li>对比：文字组合均 ≥4.5:1；橙色底一律深字</li>
+<li>动效：<code>prefers-reduced-motion</code> 关闭入场、揭示、漂移、吊牌摆动、流光</li>
+<li>性能：转盘只更新 transform / CSS 变量；揭示使用 IO 不用 scroll；图片用 SVG；首屏骨架内联，避免白屏</li>
+<li>资源：字体 3 族（Space Grotesk / Inter / Noto Sans SC），<code>display=swap</code></li>
+</ul>
+<hr />
+<h2 id="10-react-bits">10. 组件来源 · React Bits</h2>
+<p>界面里的几处标志性交互<strong>移植/改编自 <a href="https://reactbits.dev">React Bits</a></strong>（原作者开源组件为 React 版本，本项目改写为 Vue 3 单文件组件，并按本设计系统重新绘制视觉）：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>React Bits 原组件</th>
+<th>本项目落地</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>磁吸按钮</td>
+<td><code>Magnet</code></td>
+<td><code>components/fx/Magnet.vue</code> + <code>MagneticButton.vue</code></td>
+</tr>
+<tr>
+<td>药丸导航</td>
+<td><code>PillNav</code></td>
+<td><code>components/shell/PillNav.vue</code></td>
+</tr>
+<tr>
+<td>扫光文字</td>
+<td><code>ShinyText</code></td>
+<td><code>components/fx/ShinyText.vue</code></td>
+</tr>
+<tr>
+<td>滚动浮现文字</td>
+<td><code>ScrollFloat</code></td>
+<td><code>components/fx/ScrollFloat.vue</code></td>
+</tr>
+<tr>
+<td>圆形旋转木马</td>
+<td><code>CircularCarousel</code></td>
+<td><code>components/fx/CircularCarousel.vue</code></td>
+</tr>
+<tr>
+<td>个人信息卡片</td>
+<td><code>ProfileCard</code></td>
+<td><code>components/profile/ProfileCard.vue</code></td>
+</tr>
+<tr>
+<td>物理吊牌</td>
+<td><code>Lanyard</code>（交互概念）</td>
+<td><code>components/profile/SwingTag.vue</code>（DOM + 弹簧摆实现，非 WebGL）</td>
+</tr>
+<tr>
+<td>聚光灯卡片</td>
+<td><code>SpotlightCard</code></td>
+<td><code>components/profile/ProfileCard.vue</code> 内置光斑层（低亮度）</td>
+</tr>
+<tr>
+<td>折叠文字</td>
+<td><code>FoldText</code></td>
+<td><code>components/fx/FoldText.vue</code></td>
+</tr>
+<tr>
+<td>放大 Dock</td>
+<td><code>Dock</code></td>
+<td><code>components/shell/Dock.vue</code></td>
+</tr>
+<tr>
+<td>流畅菜单</td>
+<td><code>FlowingMenu</code></td>
+<td><code>components/shell/FlowingMenu.vue</code></td>
+</tr>
+</tbody>
+</table>
+<p>说明：</p>
+<ul>
+<li>组件库地址：<a href="https://reactbits.dev">https://reactbits.dev</a></li>
+<li>上表左列为原组件名，右列为本项目改写后的 Vue 实现；视觉、尺寸、配色均已按本规范重做，不是原组件的默认皮肤</li>
+<li>物理吊牌只借鉴 <code>Lanyard</code> 的「悬挂 + 拖拽 + 回摆」交互概念，用 CSS + 弹簧方程实现，未使用其 three.js 代码</li>
+<li>使用/分发前请遵守 React Bits 仓库的许可条款（MIT），并在二次分发时保留出处</li>
+</ul></main>
+</body></html>
