@@ -20,6 +20,7 @@ import ConfirmDialog from '@/components/rooms/ConfirmDialog.vue'
 import { formatDateTime, roomDetailPath } from '@/components/rooms/roomFormat'
 import ConnectionActions from './ConnectionActions.vue'
 import ContactPanel from './ContactPanel.vue'
+import DeadlineProgress from './DeadlineProgress.vue'
 import DeadlineText from './DeadlineText.vue'
 import SecurityActions from '@/components/security/SecurityActions.vue'
 import {
@@ -466,6 +467,12 @@ onBeforeUnmount(() => {
                 <span>{{ label }}</span>
               </li>
             </ol>
+
+            <DeadlineProgress
+              v-if="open"
+              :status="connection.status"
+              :expires-at="connection.expires_at"
+            />
           </section>
 
           <section class="detail-card">

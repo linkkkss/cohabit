@@ -243,6 +243,38 @@ export function connectionDeadline(expiresAt: string | null): string {
   return `还剩 ${hours} 小时 ${minutes % 60} 分`
 }
 
+/**
+ * 三个开放阶段各自的窗口长度，必须与后端
+ * `backend/apps/connections/services.py` 的 `PENDING_TTL` / `CONTACT_TTL` / `CONFIRM_TTL`
+ * 保持一致。服务端每次进入阶段都会把 `expires_at` 写成「现在 + 窗口」，
+ * 所以阶段起点可以由 `expires_at - 窗口` 反推，不需要额外接口。
+ */
+const PHASE_WINDOW_MS: Record<string, number> = {
+  PENDING: 48 * 60 * 60 * 1000,
+  CONTACT_SHARED: 7 * 24 * 60 * 60 * 1000,
+  CONFIRMING: 48 * 60 * 60 * 1000,
+}
+
+/** 当前阶段的窗口文案，用于「为什么是 48 小时 / 7 天」的说明链接。 */
+export function phaseWindowLabel(status: ConnectionStatus): string {
+  return status === 'CONTACT_SHARED' ? '7 天' : '48 小时'
+}
+
+/**
+ * 当前阶段已经过去多少（0–1），用来画剩余时间进度条。
+ * 终止态或缺少 `expires_at` 时返回 0，由调用方决定是否渲染。
+ */
+export function phaseElapsedRatio(status: ConnectionStatus, expiresAt: string | null): number {
+  const window = PHASE_WINDOW_MS[status]
+  const end = parseDate(expiresAt)
+  if (!window || !end) {
+    return 0
+  }
+  const startedAt = end.getTime() - window
+  const elapsed = (Date.now() - startedAt) / window
+  return Math.min(1, Math.max(0, elapsed))
+}
+
 export interface ContactRow {
   key: 'qq' | 'wechat' | 'phone'
   label: string
